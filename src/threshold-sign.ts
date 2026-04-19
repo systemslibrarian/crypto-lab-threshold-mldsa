@@ -11,7 +11,7 @@
 
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
 
-import type { ThresholdKeyPair } from './dkg';
+import { distributedKeyGen, type ThresholdKeyPair } from './dkg';
 import {
   MLDSA_N,
   MLDSA_Q,
@@ -339,7 +339,7 @@ export async function comparisonBenchmark(
   standaloneAvgTimeMs: number;
   overheadFactor: number;
 }> {
-  const keypair = await (await import('./dkg')).distributedKeyGen();
+  const keypair = await distributedKeyGen();
   const secretKey = reconstructByteShares(keypair.serverShare.secretKeyShare, keypair.phoneShare.secretKeyShare);
 
   let thresholdRounds = 0;
