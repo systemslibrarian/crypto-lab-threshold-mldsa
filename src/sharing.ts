@@ -111,7 +111,7 @@ export function sharedInfinityNormLessThan(
       return {
         result: false,
         rounds: comparison.rounds,
-        byteCost: comparison.byteCost * (i + 1),
+        byteCost: 64,
       };
     }
   }
@@ -119,7 +119,7 @@ export function sharedInfinityNormLessThan(
   return {
     result: true,
     rounds: 2,
-    byteCost: polyServer.length * 16,
+    byteCost: 64,
   };
 }
 
