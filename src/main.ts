@@ -19,6 +19,7 @@ if (!app) {
 }
 
 app.innerHTML = `
+  <a class="skip-link" href="#live-demo">Skip to live demo</a>
   <div class="shell">
     <header class="hero-section panel">
       <div class="hero-copy">
@@ -43,11 +44,11 @@ app.innerHTML = `
       </div>
     </header>
 
-    <section class="notice-row">
-      <div id="status-banner" class="status-banner tone-idle">Initializing the two-party ML-DSA-65 demo…</div>
+    <section class="notice-row" aria-label="Protocol status">
+      <div id="status-banner" class="status-banner tone-idle" role="status" aria-live="polite" aria-atomic="true">Initializing the two-party ML-DSA-65 demo…</div>
     </section>
 
-    <section class="protocol-stage panel">
+    <section class="protocol-stage panel" aria-label="Two-party signing stage">
       <div class="party-panel server-panel">
         <div class="party-head">
           <h2>SERVER</h2>
@@ -57,7 +58,7 @@ app.innerHTML = `
         <div id="server-share-box" class="masked-box">Waiting for distributed key generation…</div>
       </div>
 
-      <div class="shared-lane">
+      <div class="shared-lane" aria-label="Shared communication channel">
         <div class="lane-label">Shared channel</div>
         <div class="arrow arrow-right">ρ, w, challenge, hints</div>
         <div class="joint-artifact">
@@ -113,14 +114,15 @@ app.innerHTML = `
         </ol>
       </article>
 
-      <article class="panel exhibit live-exhibit">
+      <article id="live-demo" class="panel exhibit live-exhibit">
         <h3>Exhibit 3 — Live two-party signing</h3>
         <label class="field-label" for="message-input">Message</label>
-        <textarea id="message-input" rows="3">Transfer $1000 to Alice</textarea>
+        <p id="message-help" class="small-note">Enter the message both parties will jointly authorize with ML-DSA-65.</p>
+        <textarea id="message-input" rows="3" aria-describedby="message-help">Transfer $1000 to Alice</textarea>
         <div class="button-row">
-          <button id="sign-button" class="primary-button" type="button">Start threshold signing</button>
-          <button id="phone-toggle" class="secondary-button" type="button">Disable phone</button>
-          <button id="benchmark-button" class="secondary-button" type="button">Run quick benchmark</button>
+          <button id="sign-button" class="primary-button" type="button" aria-controls="protocol-log sign-stats">Start threshold signing</button>
+          <button id="phone-toggle" class="secondary-button" type="button" aria-controls="protocol-log" aria-pressed="false">Disable phone</button>
+          <button id="benchmark-button" class="secondary-button" type="button" aria-controls="protocol-log sign-stats">Run quick benchmark</button>
         </div>
         <div id="sign-stats" class="stats-grid">
           <div class="stat-card"><span>Scenario</span><strong>2-of-2</strong></div>
@@ -130,13 +132,14 @@ app.innerHTML = `
           <div class="stat-card"><span>Time</span><strong>—</strong></div>
           <div class="stat-card"><span>Verifier</span><strong>—</strong></div>
         </div>
-        <div id="protocol-log" class="log-panel">Awaiting the first signing run…</div>
+        <div id="protocol-log" class="log-panel" role="log" aria-live="polite" aria-relevant="additions text">Awaiting the first signing run…</div>
       </article>
 
       <article class="panel exhibit">
         <h3>Exhibit 4 — Published threshold ML-DSA landscape</h3>
         <div class="table-wrap">
           <table>
+            <caption class="sr-only">Comparison of threshold ML-DSA research schemes and their properties.</caption>
             <thead>
               <tr>
                 <th>Scheme</th>
@@ -216,6 +219,30 @@ function getElement<T extends Element>(selector: string): T {
 function setTheme(theme: 'dark' | 'light'): void {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('theme', theme);
+  updateThemeButton();
+}
+
+function updateThemeButton(): void {
+  const theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
+  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+  themeToggleButton.textContent = `Switch to ${nextTheme} theme`;
+  themeToggleButton.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
+}
+
+function updatePhoneToggleButton(): void {
+  phoneToggleButton.textContent = phoneEnabled ? 'Disable phone' : 'Enable phone';
+  phoneToggleButton.setAttribute('aria-pressed', String(!phoneEnabled));
+  phoneToggleButton.setAttribute(
+    'aria-label',
+    phoneEnabled ? 'Disable the phone party to test 2 of 2 enforcement' : 'Enable the phone party to restore 2 of 2 signing',
+  );
+}
+
+function setBusyState(isBusy: boolean): void {
+  signButton.disabled = isBusy;
+  benchmarkButton.disabled = isBusy;
+  phoneToggleButton.disabled = isBusy;
+  messageInput.disabled = isBusy;
 }
 
 function escapeHtml(value: string): string {
@@ -316,8 +343,7 @@ async function ensureKeypair(): Promise<ThresholdKeyPair> {
 }
 
 async function runSigningDemo(): Promise<void> {
-  signButton.disabled = true;
-  benchmarkButton.disabled = true;
+  setBusyState(true);
   try {
     const currentKeypair = await ensureKeypair();
     const message = encodeText(messageInput.value.trim() || 'Transfer $1000 to Alice');
@@ -371,14 +397,12 @@ async function runSigningDemo(): Promise<void> {
     setStatus('danger', `Signing aborted: ${message}`);
     protocolLog.innerHTML = `<div class="log-row log-reject">${escapeHtml(message)}</div>`;
   } finally {
-    signButton.disabled = false;
-    benchmarkButton.disabled = false;
+    setBusyState(false);
   }
 }
 
 async function runBenchmarkDemo(): Promise<void> {
-  benchmarkButton.disabled = true;
-  signButton.disabled = true;
+  setBusyState(true);
   try {
     await ensureKeypair();
     setStatus('working', 'Benchmarking threshold signing overhead versus standalone ML-DSA…');
@@ -402,15 +426,14 @@ async function runBenchmarkDemo(): Promise<void> {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     setStatus('danger', `Benchmark failed: ${message}`);
   } finally {
-    benchmarkButton.disabled = false;
-    signButton.disabled = false;
+    setBusyState(false);
   }
 }
 
 function togglePhoneState(): void {
   phoneEnabled = !phoneEnabled;
   phoneIndicator.className = `dot ${phoneEnabled ? 'phone-dot' : 'off-dot'}`;
-  phoneToggleButton.textContent = phoneEnabled ? 'Disable phone' : 'Enable phone';
+  updatePhoneToggleButton();
   setStatus(
     phoneEnabled ? 'idle' : 'warning',
     phoneEnabled
@@ -433,6 +456,9 @@ async function runInitialChecks(): Promise<void> {
     setStatus('danger', `Initialization failed: ${message}`);
   }
 }
+
+updateThemeButton();
+updatePhoneToggleButton();
 
 themeToggleButton.addEventListener('click', () => {
   const currentTheme = document.documentElement.getAttribute('data-theme');

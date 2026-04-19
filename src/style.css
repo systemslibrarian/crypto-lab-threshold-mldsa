@@ -54,6 +54,42 @@ button {
   cursor: pointer;
 }
 
+button:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--shared);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--shared);
+  color: #111;
+  font-weight: 700;
+  text-decoration: none;
+  z-index: 10;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 #app {
   width: min(1280px, 100%);
   margin: 0 auto;
@@ -135,6 +171,10 @@ blockquote span {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.button-row > button {
+  flex: 1 1 190px;
 }
 
 .badge,
@@ -289,6 +329,7 @@ blockquote span {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   font-size: 0.95rem;
 }
 
@@ -401,6 +442,8 @@ textarea {
 .log-panel {
   display: grid;
   gap: 10px;
+  max-height: 420px;
+  overflow: auto;
 }
 
 .log-row {
@@ -468,6 +511,12 @@ td {
     grid-template-columns: 1fr;
   }
 
+  .hero-section,
+  .panel,
+  .exhibit {
+    padding: 16px;
+  }
+
   .live-exhibit,
   .applications-exhibit {
     grid-column: span 1;
@@ -481,6 +530,14 @@ td {
 @media (max-width: 640px) {
   .shell {
     padding: 12px;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  .button-row > button {
+    width: 100%;
   }
 
   .stats-grid {
