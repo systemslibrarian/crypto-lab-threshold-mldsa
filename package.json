@@ -2,13 +2,27 @@
   "name": "crypto-lab-threshold-mldsa",
   "private": true,
   "version": "0.0.0",
+  "description": "Browser-based educational demo of threshold ML-DSA where two parties jointly produce a standard-verifying signature.",
+  "homepage": "https://systemslibrarian.github.io/crypto-lab-threshold-mldsa/",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
+    "preview": "vite preview",
+    "verify": "tsx scripts/verify.ts"
+  },  "keywords": [
+    "cryptography",
+    "post-quantum",
+    "ml-dsa",
+    "threshold-signatures",
+    "distributed-signing",
+    "multi-party-computation",
+    "trilithium",
+    "lattice-cryptography",
+    "fips-204",
+    "browser-demo",
+    "educational"
+  ],  "devDependencies": {
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.4"
