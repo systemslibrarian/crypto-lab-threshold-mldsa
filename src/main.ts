@@ -40,7 +40,6 @@ app.innerHTML = `
           “Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God.”
           <span>— 1 Corinthians 10:31</span>
         </blockquote>
-        <button id="theme-toggle" class="secondary-button" type="button">Toggle theme</button>
       </div>
     </header>
 
@@ -76,6 +75,39 @@ app.innerHTML = `
         <p>Must participate for 2-of-2 signing. Disabling the phone blocks the protocol.</p>
         <div id="phone-share-box" class="masked-box">Waiting for distributed key generation…</div>
       </div>
+    </section>
+
+    <section class="panel reality-panel" aria-labelledby="reality-heading">
+      <h3 id="reality-heading">What's real, and what's simulated</h3>
+      <p class="small-note">
+        Honesty matters more than spectacle in a crypto demo. Here is exactly where the
+        genuine cryptography stops and the teaching simulation begins.
+      </p>
+      <div class="reality-grid">
+        <div class="reality-card reality-real">
+          <div class="reality-tag">Real — standard FIPS 204</div>
+          <ul>
+            <li>Key generation, signing, and verification all use <code>@noble/post-quantum</code>'s ML-DSA-65.</li>
+            <li>The public key and every emitted signature are genuine and verify under the unmodified standard verifier.</li>
+            <li>All randomness comes from the Web Crypto CSPRNG — never <code>Math.random</code>.</li>
+            <li>Additive secret sharing is real: each share alone is uniform and reveals nothing.</li>
+          </ul>
+        </div>
+        <div class="reality-card reality-sim">
+          <div class="reality-tag">Simulated — for teaching</div>
+          <ul>
+            <li>The round-by-round nonce, w₁, challenge, and z exchanges are <strong>choreography</strong>: they illustrate protocol shape but do not produce the signature.</li>
+            <li>The "secure norm check" reveals the combined value in the clear instead of running real MPC.</li>
+            <li>Rejections are injected to demonstrate restart-on-reject behavior.</li>
+            <li><strong>To actually sign, the demo reconstructs the full secret key in one place</strong> — so it does <em>not</em> achieve real key-non-reconstruction. A production threshold scheme never does this.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="small-note">
+        In short: the ML-DSA math is real and the output is a valid FIPS 204 signature; the
+        <em>distributed-trust</em> property is illustrated, not enforced. Building the real thing is
+        the open research problem this lab is about — see the landscape table below.
+      </p>
     </section>
 
     <section class="exhibits-grid">
@@ -114,7 +146,7 @@ app.innerHTML = `
         </ol>
       </article>
 
-      <article id="live-demo" class="panel exhibit live-exhibit">
+      <article id="live-demo" class="panel exhibit live-exhibit" tabindex="-1">
         <h3>Exhibit 3 — Live two-party signing</h3>
         <label class="field-label" for="message-input">Message</label>
         <p id="message-help" class="small-note">Enter the message both parties will jointly authorize with ML-DSA-65.</p>
@@ -142,11 +174,11 @@ app.innerHTML = `
             <caption class="sr-only">Comparison of threshold ML-DSA research schemes and their properties.</caption>
             <thead>
               <tr>
-                <th>Scheme</th>
-                <th>Parties</th>
-                <th>Security</th>
-                <th>Rounds</th>
-                <th>Std compat</th>
+                <th scope="col">Scheme</th>
+                <th scope="col">Parties</th>
+                <th scope="col">Security</th>
+                <th scope="col">Rounds</th>
+                <th scope="col">Std compat</th>
               </tr>
             </thead>
             <tbody>
@@ -160,7 +192,7 @@ app.innerHTML = `
           </table>
         </div>
         <p class="small-note">
-          No threshold ML-DSA construction is NIST-standardized as of April 2026. This lab models the signing-side protocol only.
+          No threshold ML-DSA construction is NIST-standardized as of 2026. This lab models the signing-side protocol only.
         </p>
       </article>
 
@@ -206,7 +238,6 @@ const messageInput = getElement<HTMLTextAreaElement>('#message-input');
 const signButton = getElement<HTMLButtonElement>('#sign-button');
 const phoneToggleButton = getElement<HTMLButtonElement>('#phone-toggle');
 const benchmarkButton = getElement<HTMLButtonElement>('#benchmark-button');
-const themeToggleButton = getElement<HTMLButtonElement>('#theme-toggle');
 
 function getElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -214,19 +245,6 @@ function getElement<T extends Element>(selector: string): T {
     throw new Error(`Missing required element: ${selector}`);
   }
   return element;
-}
-
-function setTheme(theme: 'dark' | 'light'): void {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
-  updateThemeButton();
-}
-
-function updateThemeButton(): void {
-  const theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
-  const nextTheme = theme === 'dark' ? 'light' : 'dark';
-  themeToggleButton.textContent = `Switch to ${nextTheme} theme`;
-  themeToggleButton.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
 }
 
 function updatePhoneToggleButton(): void {
@@ -270,17 +288,20 @@ function formatTime(ms: number): string {
   return `${ms.toFixed(1)} ms`;
 }
 
+function maskedRow(label: string): string {
+  // The block glyphs are decorative; screen readers get a real word instead of
+  // a run of "black square" announcements.
+  return `<div class="masked-row"><span>${label}</span><strong aria-hidden="true">████████</strong><span class="sr-only">value hidden</span></div>`;
+}
+
 function renderMaskedShares(currentKeypair: ThresholdKeyPair): void {
+  const rows = `${maskedRow('s₁ share')}${maskedRow('s₂ share')}${maskedRow('t₀ share')}`;
   serverShareBox.innerHTML = `
-    <div class="masked-row"><span>s₁ share</span><strong>████████</strong></div>
-    <div class="masked-row"><span>s₂ share</span><strong>████████</strong></div>
-    <div class="masked-row"><span>t₀ share</span><strong>████████</strong></div>
+    ${rows}
     <div class="masked-row"><span>Signing bytes</span><strong>${currentKeypair.serverShare.secretKeyShare.length} hidden bytes</strong></div>
   `;
   phoneShareBox.innerHTML = `
-    <div class="masked-row"><span>s₁ share</span><strong>████████</strong></div>
-    <div class="masked-row"><span>s₂ share</span><strong>████████</strong></div>
-    <div class="masked-row"><span>t₀ share</span><strong>████████</strong></div>
+    ${rows}
     <div class="masked-row"><span>Signing bytes</span><strong>${currentKeypair.phoneShare.secretKeyShare.length} hidden bytes</strong></div>
   `;
 }
@@ -457,13 +478,7 @@ async function runInitialChecks(): Promise<void> {
   }
 }
 
-updateThemeButton();
 updatePhoneToggleButton();
-
-themeToggleButton.addEventListener('click', () => {
-  const currentTheme = document.documentElement.getAttribute('data-theme');
-  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-});
 
 signButton.addEventListener('click', () => {
   void runSigningDemo();

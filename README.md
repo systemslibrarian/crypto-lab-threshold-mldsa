@@ -35,7 +35,29 @@ The live UI includes five exhibits:
 4. A comparison table of the 2024–2026 threshold ML-DSA research landscape
 5. Real-world applications for post-quantum multi-party signing
 
-> This repo is **educational, not production-safe**. No threshold ML-DSA scheme is NIST-standardized as of April 2026.
+> This repo is **educational, not production-safe**. No threshold ML-DSA scheme is NIST-standardized as of 2026.
+
+---
+
+## What's Real and What's Simulated
+
+A cryptography demo earns trust by being precise about its own limits. This one draws a hard line:
+
+**Real (standard FIPS 204):**
+
+- Key generation, signing, and verification use `@noble/post-quantum`'s ML-DSA-65.
+- The public key and every emitted signature are genuine and verify under the **unmodified** standard verifier.
+- All randomness comes from the Web Crypto CSPRNG — there is no `Math.random` anywhere in `src/`.
+- Additive secret sharing is real: each share on its own is uniform and reveals nothing about the secret.
+
+**Simulated (for teaching):**
+
+- The round-by-round nonce / `w₁` / challenge / `z` exchanges are *choreography*. They show the protocol's shape but do not produce the signature.
+- The "secure norm check" reveals the combined value in the clear instead of running real MPC.
+- Rejections are injected so you can watch restart-on-reject behavior.
+- **To actually sign, the demo reconstructs the full secret key in one place** and calls the standard signer. It therefore does **not** achieve real key-non-reconstruction — the central property a production threshold scheme must provide.
+
+Bottom line: the ML-DSA math is real and the output is a valid FIPS 204 signature; the *distributed-trust* property is illustrated, not enforced. Closing that gap is the open research problem this lab exists to explain.
 
 ---
 
@@ -64,9 +86,15 @@ Local development:
 
 ```bash
 npm install
-npm run dev
-npm run build
+npm run dev      # start the Vite dev server
+npm run build    # typecheck (tsc) + production build
+npm run verify   # run the verification suite (exits non-zero on failure)
 ```
+
+`npm run verify` is the project's test gate: it checks additive sharing, distributed key
+generation, two-party signing, standard-verifier compatibility, tamper rejection, the
+single-party block, the no-`Math.random` rule, and the honesty disclosures. Both `build`
+and `verify` run on every push and pull request via GitHub Actions (`.github/workflows/ci.yml`).
 
 ---
 
