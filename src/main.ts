@@ -220,6 +220,14 @@ app.innerHTML = `
       <p>
         Trilithium: Dufka, Kravtsenko, Laud, Snetkov (ePrint 2025/675). Quorus: Borin et al. (ePrint 2025/1163). TOPCOAT: 2024 two-party HighBits compression. Dufka–Kravtsenko identifiable aborts: ePrint 2025/871. del Pino–Prest unmasking TRaccoon: ePrint 2025/849.
       </p>
+      <p class="related-demos">
+        Related demos:
+        <a href="https://systemslibrarian.github.io/crypto-lab-dilithium-seal/">crypto-lab-dilithium-seal</a> ·
+        <a href="https://systemslibrarian.github.io/crypto-lab-frost-threshold/">crypto-lab-frost-threshold</a> ·
+        <a href="https://systemslibrarian.github.io/crypto-lab-threshold-decrypt/">crypto-lab-threshold-decrypt</a> ·
+        <a href="https://systemslibrarian.github.io/crypto-lab-vss-gate/">crypto-lab-vss-gate</a> ·
+        <a href="https://systemslibrarian.github.io/crypto-lab-hybrid-sign/">crypto-lab-hybrid-sign</a>
+      </p>
     </section>
   </div>
 `;
