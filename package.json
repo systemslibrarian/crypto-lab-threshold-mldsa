@@ -9,7 +9,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "verify": "tsx scripts/verify.ts"
+    "verify": "tsx scripts/verify.ts",
+    "test:a11y": "playwright test"
   },  "keywords": [
     "cryptography",
     "post-quantum",
@@ -23,6 +24,8 @@
     "browser-demo",
     "educational"
   ],  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.61.1",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.4"
