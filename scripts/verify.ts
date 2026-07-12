@@ -66,7 +66,7 @@ async function main(): Promise<void> {
   const keyCheck = await verifyKeyShares(keypair);
 
   const message = encodeText('Threshold ML-DSA verification message');
-  const signingResult = await thresholdSign(message, keypair, undefined, 100);
+  const signingResult = await thresholdSign(message, keypair);
   const signatureValid = await verifyWithStandardMLDSA(message, signingResult.signature, keypair.publicKey);
   const onePartyFails = await singlePartyAttemptFails(message, keypair, 'server');
 
@@ -92,7 +92,8 @@ async function main(): Promise<void> {
   const uiMarksEducational = mainUi.includes('Educational only') && mainUi.includes('Not standardized');
   const uiMarksReality =
     mainUi.includes("What's real, and what's simulated") &&
-    mainUi.includes('reconstructs the full secret key');
+    mainUi.includes('combines the two additive byte shares into the full secret key') &&
+    mainUi.includes('key-non-reconstruction');
   const noMathRandom = !(await containsMathRandom());
 
   const results: ResultRow[] = [
@@ -110,42 +111,41 @@ async function main(): Promise<void> {
     },
     {
       id: 4,
-      label: 'Distributed key generation yields a valid public key',
-      pass: keyCheck.valid && keyCheck.publicKeyMatches,
-      evidence: `valid=${keyCheck.valid}, publicKeyMatches=${keyCheck.publicKeyMatches}`,
+      label: 'Split-custody shares recombine to a key that matches THIS public key',
+      pass: keyCheck.valid && keyCheck.sharesMatchPublicKey,
+      evidence: `valid=${keyCheck.valid}, sharesMatchPublicKey=${keyCheck.sharesMatchPublicKey}, illustrativeReconstruct=${keyCheck.illustrativeSharesReconstruct}`,
     },
     {
       id: 5,
-      label: 'Two-party signing completes within the restart budget',
+      label: 'Two-party (combine-then-sign) produces a signature',
       pass:
-        signingResult.rounds.length > 0 &&
+        signingResult.steps.length > 0 &&
         signingResult.signatureVerifiesWithStandardMLDSA,
-      evidence: `rounds=${signingResult.rounds.length}, rejections=${signingResult.totalRejections}, verifies=${signingResult.signatureVerifiesWithStandardMLDSA}`,
+      evidence: `steps=${signingResult.steps.length}, verifies=${signingResult.signatureVerifiesWithStandardMLDSA}`,
     },
     {
       id: 6,
-      label: 'Threshold signature verifies with standard ML-DSA',
+      label: 'The signature verifies with standard ML-DSA',
       pass: signatureValid && signingResult.signatureVerifiesWithStandardMLDSA,
       evidence: `verify=${signatureValid}`,
     },
     {
       id: 7,
-      label: 'Disabling one party prevents signing',
+      label: 'A single party alone cannot produce an accepted signature',
       pass: onePartyFails,
       evidence: `singlePartyAttemptFails=${onePartyFails}`,
     },
     {
       id: 8,
-      // Bounds are deliberately wide: rejection sampling is driven by the real
-      // Web Crypto CSPRNG, so this asserts the overhead *story* (restarts happen,
-      // threshold is slower, more bytes move) without flaking on a lucky seed.
-      label: 'Threshold signing shows measurable overhead vs standalone',
+      // Only genuinely-measured wall-clock time is reported; the overhead
+      // factor is unbounded but must be positive and finite.
+      label: 'Timing benchmark reports measured (not fabricated) wall-clock numbers',
       pass:
-        benchmark.overheadFactor >= 1 &&
-        benchmark.thresholdAvgBytes > 0 &&
-        benchmark.thresholdRejectRate >= 0 &&
-        benchmark.thresholdRejectRate <= 40,
-      evidence: `rejectRate=${benchmark.thresholdRejectRate}, avgBytes=${benchmark.thresholdAvgBytes}, overheadFactor=${benchmark.overheadFactor}`,
+        benchmark.iterations === 6 &&
+        benchmark.standaloneAvgTimeMs > 0 &&
+        benchmark.reconstructThenSignAvgTimeMs > 0 &&
+        Number.isFinite(benchmark.overheadFactor),
+      evidence: `standalone=${benchmark.standaloneAvgTimeMs}ms, reconstructThenSign=${benchmark.reconstructThenSignAvgTimeMs}ms, overhead=${benchmark.overheadFactor}`,
     },
     {
       id: 9,

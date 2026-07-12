@@ -7,7 +7,7 @@ import {
   malformedPartyResponseAborts,
   singlePartyAttemptFails,
   thresholdSign,
-  type SigningRoundLog,
+  type WalkthroughStep,
 } from './threshold-sign';
 
 type StatusTone = 'idle' | 'working' | 'success' | 'warning' | 'danger';
@@ -96,10 +96,9 @@ app.innerHTML = `
         <div class="reality-card reality-sim">
           <div class="reality-tag">Simulated — for teaching</div>
           <ul>
-            <li>The round-by-round nonce, w₁, challenge, and z exchanges are <strong>choreography</strong>: they illustrate protocol shape but do not produce the signature.</li>
-            <li>The "secure norm check" reveals the combined value in the clear instead of running real MPC.</li>
-            <li>Rejections are injected to demonstrate restart-on-reject behavior.</li>
-            <li><strong>To actually sign, the demo reconstructs the full secret key in one place</strong> — so it does <em>not</em> achieve real key-non-reconstruction. A production threshold scheme never does this.</li>
+            <li>The round-by-round nonce, w₁, challenge, and z exchanges are <strong>choreography</strong>: they illustrate protocol shape but do not produce the signature. Each step is labelled real or illustrative.</li>
+            <li>The "secure norm check" is described, not executed — this build runs no real MPC and reports no fabricated "bytes exchanged" traffic.</li>
+            <li><strong>To actually sign, the demo combines the two additive byte shares into the full secret key in one place</strong> — so it does <em>not</em> achieve real key-non-reconstruction. A production threshold scheme never does this.</li>
           </ul>
         </div>
       </div>
@@ -135,6 +134,7 @@ app.innerHTML = `
 
       <article class="panel exhibit">
         <h3>Exhibit 2 — Trilithium-style protocol walkthrough</h3>
+        <p class="small-note">Illustrative: these steps show the <em>shape</em> of a real two-party lattice signing round. In this teaching build the actual signature comes from step 4′ below — the two byte shares are combined and the standard signer runs.</p>
         <ol class="steps-list">
           <li>Server and phone sample additive nonce shares y^S and y^P.</li>
           <li>Each computes a local A·y contribution and exchanges masked summaries.</li>
@@ -157,11 +157,11 @@ app.innerHTML = `
           <button id="benchmark-button" class="secondary-button" type="button" aria-controls="protocol-log sign-stats">Run quick benchmark</button>
         </div>
         <div id="sign-stats" class="stats-grid">
-          <div class="stat-card"><span>Scenario</span><strong>2-of-2</strong></div>
-          <div class="stat-card"><span>Attempts</span><strong>—</strong></div>
-          <div class="stat-card"><span>Rounds</span><strong>—</strong></div>
-          <div class="stat-card"><span>Bytes</span><strong>—</strong></div>
-          <div class="stat-card"><span>Time</span><strong>—</strong></div>
+          <div class="stat-card"><span>Scenario</span><strong>2-of-2 custody</strong></div>
+          <div class="stat-card"><span>Signature</span><strong>—</strong></div>
+          <div class="stat-card"><span>Sign time</span><strong>—</strong></div>
+          <div class="stat-card"><span>Key reconstructed</span><strong>—</strong></div>
+          <div class="stat-card"><span>Key non-recon.</span><strong>—</strong></div>
           <div class="stat-card"><span>Verifier</span><strong>—</strong></div>
         </div>
         <div id="protocol-log" class="log-panel" role="log" aria-live="polite" aria-relevant="additions text">Awaiting the first signing run…</div>
@@ -320,18 +320,18 @@ function renderStats(entries: Array<{ label: string; value: string }>): void {
     .join('');
 }
 
-function renderLogs(logs: SigningRoundLog[]): void {
-  protocolLog.innerHTML = logs
-    .map((log) => `
-      <div class="log-row log-${log.result}">
+function renderSteps(steps: WalkthroughStep[]): void {
+  protocolLog.innerHTML = steps
+    .map((step) => `
+      <div class="log-row log-${step.kind === 'real' ? 'ok' : 'reject'}">
         <div class="log-top">
-          <strong>Round ${log.roundNumber}</strong>
-          <span>${formatBytes(log.bytesExchanged)} • ${formatTime(log.timeMs)}</span>
+          <strong>Step ${step.stepNumber}</strong>
+          <span>${step.kind === 'real' ? 'Real cryptography' : 'Illustrative (protocol shape)'}</span>
         </div>
-        <div>${escapeHtml(log.description)}</div>
+        <div>${escapeHtml(step.description)}</div>
         <div class="log-actions">
-          <span>Server: ${escapeHtml(log.serverAction)}</span>
-          <span>Phone: ${escapeHtml(log.phoneAction)}</span>
+          <span>Server: ${escapeHtml(step.serverAction)}</span>
+          <span>Phone: ${escapeHtml(step.phoneAction)}</span>
         </div>
       </div>
     `)
@@ -382,11 +382,11 @@ async function runSigningDemo(): Promise<void> {
       jointArtifactText.textContent = blocked ? 'Signing blocked: phone share missing.' : 'Unexpected single-party success.';
       setStatus('warning', 'The phone is disabled, so the 2-of-2 protocol cannot complete.');
       renderStats([
-        { label: 'Scenario', value: '2-of-2' },
-        { label: 'Attempts', value: '0' },
-        { label: 'Rounds', value: '0' },
-        { label: 'Bytes', value: '0 B' },
-        { label: 'Time', value: '0 ms' },
+        { label: 'Scenario', value: '2-of-2 custody' },
+        { label: 'Signature', value: '—' },
+        { label: 'Sign time', value: '—' },
+        { label: 'Key reconstructed', value: 'No (share missing)' },
+        { label: 'Key non-recon.', value: 'Not achieved' },
         { label: 'Verifier', value: blocked ? 'Sign blocked' : 'Unexpected' },
       ]);
       protocolLog.innerHTML = `
@@ -398,12 +398,9 @@ async function runSigningDemo(): Promise<void> {
       return;
     }
 
-    setStatus('working', 'Both parties are participating. Running the threshold signing rounds…');
-    const liveLogs: SigningRoundLog[] = [];
-    const result = await thresholdSign(message, currentKeypair, (log) => {
-      liveLogs.push(log);
-      renderLogs(liveLogs);
-    });
+    setStatus('working', 'Both parties are participating. Combining shares and signing with standard ML-DSA-65…');
+    const result = await thresholdSign(message, currentKeypair);
+    renderSteps(result.steps);
 
     jointArtifactText.textContent = `σ = ${bytesToHex(result.signature, 20)}…`;
     setStatus(
@@ -414,11 +411,11 @@ async function runSigningDemo(): Promise<void> {
     );
 
     renderStats([
-      { label: 'Scenario', value: '2-of-2' },
-      { label: 'Attempts', value: String(result.totalRejections + 1) },
-      { label: 'Rounds', value: String(result.rounds.length) },
-      { label: 'Bytes', value: formatBytes(result.totalBytesExchanged) },
-      { label: 'Time', value: formatTime(result.totalTimeMs) },
+      { label: 'Scenario', value: '2-of-2 custody' },
+      { label: 'Signature', value: `${result.signature.length} bytes` },
+      { label: 'Sign time', value: formatTime(result.signTimeMs) },
+      { label: 'Key reconstructed', value: 'Yes (teaching build)' },
+      { label: 'Key non-recon.', value: 'Not achieved' },
       { label: 'Verifier', value: result.signatureVerifiesWithStandardMLDSA ? 'PASS' : 'FAIL' },
     ]);
   } catch (error) {
@@ -434,23 +431,23 @@ async function runBenchmarkDemo(): Promise<void> {
   setBusyState(true);
   try {
     await ensureKeypair();
-    setStatus('working', 'Benchmarking threshold signing overhead versus standalone ML-DSA…');
+    setStatus('working', 'Timing standalone signing versus the reconstruct-then-sign path…');
     const stats = await comparisonBenchmark(6);
     renderStats([
-      { label: 'Scenario', value: '2-of-2' },
-      { label: 'Avg rounds', value: String(stats.thresholdAvgRounds) },
-      { label: 'Avg bytes', value: formatBytes(stats.thresholdAvgBytes) },
-      { label: 'Threshold time', value: formatTime(stats.thresholdAvgTimeMs) },
-      { label: 'Standalone time', value: formatTime(stats.standaloneAvgTimeMs) },
-      { label: 'Rejects / sig', value: String(stats.thresholdRejectRate) },
+      { label: 'Scenario', value: '2-of-2 custody' },
+      { label: 'Iterations', value: String(stats.iterations) },
+      { label: 'Standalone', value: formatTime(stats.standaloneAvgTimeMs) },
+      { label: 'Reconstruct+sign', value: formatTime(stats.reconstructThenSignAvgTimeMs) },
+      { label: 'Overhead', value: `×${stats.overheadFactor}` },
+      { label: 'Measured', value: 'Wall-clock only' },
     ]);
     protocolLog.innerHTML = `
       <div class="log-row log-ok">
-        <div class="log-top"><strong>Benchmark result</strong><span>Overhead ×${stats.overheadFactor}</span></div>
-        <div>Threshold ML-DSA signing is slower because every restart requires both parties to resample and coordinate.</div>
+        <div class="log-top"><strong>Measured timing</strong><span>Overhead ×${stats.overheadFactor}</span></div>
+        <div>Only genuinely-measured wall-clock time is shown: standard signing vs combining the two byte shares and then signing. This build runs no real MPC, so no "bytes exchanged" figure is reported.</div>
       </div>
     `;
-    setStatus('success', 'Benchmark completed. The demo shows the expected multi-round overhead of threshold ML-DSA.');
+    setStatus('success', 'Timing complete. These are measured wall-clock numbers, not simulated MPC traffic.');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     setStatus('danger', `Benchmark failed: ${message}`);

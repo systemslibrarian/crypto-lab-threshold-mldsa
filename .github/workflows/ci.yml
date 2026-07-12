@@ -25,5 +25,8 @@ jobs:
       - name: Typecheck and build
         run: npm run build
 
+      - name: Unit tests (vitest)
+        run: npm test
+
       - name: Run verification suite
         run: npm run verify

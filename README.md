@@ -8,7 +8,7 @@ This repository demonstrates the central threshold-signing question for post-qua
 - Can the verifier remain unchanged and still accept that signature under standard FIPS 204 verification?
 - Why is this harder than threshold Schnorr or threshold BLS?
 
-The demo answers those questions with an educational two-party simulation based on the current research direction:
+The demo explores those questions with an educational two-party **split-custody** simulation (the genuine ML-DSA key is additively shared, then combined to sign) based on the current research direction. It illustrates the protocol *shape* honestly — it does not implement a real threshold scheme (see "What's Real and What's Simulated" below):
 
 - **Trilithium** — Dufka, Kravtsenko, Laud, Snetkov, ePrint 2025/675
 - **Quorus** — Borin et al., ePrint 2025/1163
@@ -22,7 +22,7 @@ The live UI includes five exhibits:
 
 1. Why threshold ML-DSA is harder than classical threshold signatures
 2. A Trilithium-style step-by-step protocol walkthrough
-3. Interactive two-party signing with restart-on-rejection behavior
+3. Interactive two-party (split-custody) signing, with each step labelled real or illustrative
 4. A comparison table of the 2024–2026 threshold ML-DSA research landscape
 5. Real-world applications for post-quantum multi-party signing
 
@@ -35,7 +35,7 @@ Use this demo when you want to:
 - understand why threshold lattice signatures are more complicated than threshold Schnorr or BLS
 - study the structure of a two-party ML-DSA protocol in a browser-only environment
 - see additive secret sharing applied to ML-DSA-flavored key components
-- compare communication rounds, byte cost, and restart behavior against standalone signing
+- compare the measured wall-clock cost of the combine-then-sign path against standalone signing
 - explain threshold post-quantum signing to engineers, students, auditors, or security teams
 - explore future design ideas for root CAs, validator networks, recovery flows, and enterprise approvals
 - Do NOT use this repository for production signing systems, HSM deployments, or compliance-sensitive infrastructure — it is a teaching demo.
@@ -44,7 +44,7 @@ Use this demo when you want to:
 
 **[systemslibrarian.github.io/crypto-lab-threshold-mldsa](https://systemslibrarian.github.io/crypto-lab-threshold-mldsa/)**
 
-The live UI walks through five exhibits: why threshold ML-DSA is harder than classical threshold signatures, a Trilithium-style step-by-step protocol walkthrough, interactive two-party signing with restart-on-rejection behavior, a comparison table of the 2024–2026 threshold ML-DSA research landscape, and real-world applications for post-quantum multi-party signing. The math is genuine ML-DSA-65 from `@noble/post-quantum`, so every emitted signature verifies under the unmodified standard FIPS 204 verifier.
+The live UI walks through five exhibits: why threshold ML-DSA is harder than classical threshold signatures, a Trilithium-style step-by-step protocol walkthrough (with every step labelled real or illustrative), interactive two-party split-custody signing, a comparison table of the 2024–2026 threshold ML-DSA research landscape, and real-world applications for post-quantum multi-party signing. The math is genuine ML-DSA-65 from `@noble/post-quantum`, so every emitted signature verifies under the unmodified standard FIPS 204 verifier.
 
 ## What Can Go Wrong
 
@@ -106,15 +106,14 @@ A cryptography demo earns trust by being precise about its own limits. This one 
 **Simulated (for teaching):**
 
 - The round-by-round nonce / `w₁` / challenge / `z` exchanges are *choreography*. They show the protocol's shape but do not produce the signature.
-- The "secure norm check" reveals the combined value in the clear instead of running real MPC.
-- Rejections are injected so you can watch restart-on-reject behavior.
-- **To actually sign, the demo reconstructs the full secret key in one place** and calls the standard signer. It therefore does **not** achieve real key-non-reconstruction — the central property a production threshold scheme must provide.
+- The round-by-round walkthrough (nonce / `w₁` / challenge / `z` / secure norm check) shows the protocol's *shape*; it does not run real MPC and does not produce the signature. Each step is explicitly labelled real or illustrative.
+- **To actually sign, the demo combines the two additive byte shares into the full secret key in one place** and calls the standard signer. It therefore does **not** achieve real key-non-reconstruction — the central property a production threshold scheme must provide.
 
 Bottom line: the ML-DSA math is real and the output is a valid FIPS 204 signature; the *distributed-trust* property is illustrated, not enforced. Closing that gap is the open research problem this lab exists to explain.
 
 ## Stack
 
-Browser-based educational demo of threshold signature protocols for ML-DSA (NIST FIPS 204, the standardized post-quantum digital signature algorithm). The app simulates a simplified two-party signing flow inspired by Trilithium, where Server and Phone cooperatively produce a signature that still verifies with the standard ML-DSA verifier.
+Browser-based educational demo of ML-DSA (NIST FIPS 204, the standardized post-quantum digital signature algorithm) held in two-party split custody. The app illustrates the *shape* of a Trilithium-style two-party signing flow, but the emitted signature is produced by combining the two additive byte shares of the genuine secret key in one place and calling the standard signer — so it still verifies with the unmodified ML-DSA verifier while being honest that it does not enforce key-non-reconstruction.
 
 Stack: Vite + TypeScript strict + vanilla CSS + `@noble/post-quantum/ml-dsa`. No backends.
 
@@ -122,17 +121,21 @@ Stack: Vite + TypeScript strict + vanilla CSS + `@noble/post-quantum/ml-dsa`. No
 
 ```bash
 npm run build    # typecheck (tsc) + production build
-npm run verify   # run the verification suite (exits non-zero on failure)
+npm test         # vitest crypto unit tests (KATs / round-trip / forgery-rejection)
+npm run verify   # end-to-end verification suite (exits non-zero on failure)
 ```
 
-`npm run verify` is the project's test gate: it checks additive sharing, distributed key
-generation, two-party signing, standard-verifier compatibility, tamper rejection, the
-single-party block, the no-`Math.random` rule, and the honesty disclosures. Both `build`
-and `verify` run on every push and pull request via GitHub Actions (`.github/workflows/ci.yml`).
+`npm test` runs focused crypto unit tests: additive byte/polynomial sharing round-trips,
+that the recombined shares are bound to **this** public key (and that a foreign public key
+is rejected — the regression that guards the old share/key disconnect), that a single party
+cannot forge, forgery/tamper rejection by the standard verifier, and that no fabricated MPC
+byte counts leak into results. `npm run verify` additionally checks the no-`Math.random`
+rule and the honesty disclosures. `build`, `test`, and `verify` all run on every push and
+pull request via GitHub Actions (`.github/workflows/ci.yml`).
 
 ## Repo Description
 
-> Browser-based educational demo of threshold ML-DSA (FIPS 204) — two-party distributed signing where neither party holds the complete secret key. Produces signatures that verify with standard ML-DSA. Inspired by Trilithium (2025). Shows why threshold lattice signatures are harder than classical. Research status: no NIST standard yet, expected 2027+.
+> Browser-based educational demo of ML-DSA-65 (FIPS 204) in two-party split custody — the genuine secret key is additively shared between server and phone so neither party can sign alone, and combining both shares produces a signature that verifies with the standard verifier. It teaches the *shape* of Trilithium-style (2025) threshold lattice signing and explains why it is harder than classical threshold signatures. It does **not** achieve key-non-reconstruction: to sign, the two shares are combined in one place — closing that gap is the open research problem. Research status: no NIST threshold standard yet, expected 2027+.
 
 ## Suggested GitHub Topics
 

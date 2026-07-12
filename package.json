@@ -2,7 +2,7 @@
   "name": "crypto-lab-threshold-mldsa",
   "private": true,
   "version": "0.0.0",
-  "description": "Browser-based educational demo of threshold ML-DSA where two parties jointly produce a standard-verifying signature.",
+  "description": "Browser-based educational demo of ML-DSA-65 (FIPS 204) in two-party split custody: the genuine secret key is additively shared between server and phone, and combining both shares produces a standard-verifying signature. Teaches the shape of threshold lattice signing; it does NOT achieve key-non-reconstruction (an open research problem).",
   "homepage": "https://systemslibrarian.github.io/crypto-lab-threshold-mldsa/",
   "type": "module",
   "scripts": {
@@ -10,8 +10,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "verify": "tsx scripts/verify.ts",
+    "test": "vitest run",
     "test:a11y": "playwright test"
-  },  "keywords": [
+  },
+  "keywords": [
     "cryptography",
     "post-quantum",
     "ml-dsa",
@@ -23,12 +25,14 @@
     "fips-204",
     "browser-demo",
     "educational"
-  ],  "devDependencies": {
+  ],
+  "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.61.1",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vitest": "^3.2.7"
   },
   "dependencies": {
     "@noble/post-quantum": "^0.6.1"
