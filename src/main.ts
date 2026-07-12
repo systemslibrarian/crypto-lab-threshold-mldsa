@@ -70,8 +70,8 @@ app.innerHTML = `
     <section class="panel reality-panel" aria-labelledby="reality-heading">
       <h3 id="reality-heading">What's real, and what's simulated</h3>
       <p class="small-note">
-        Honesty matters more than spectacle in a crypto demo. Here is exactly where the
-        genuine cryptography stops and the teaching simulation begins.
+        <strong>Educational only.</strong> Honesty matters more than spectacle in a crypto demo.
+        Here is exactly where the genuine cryptography stops and the teaching simulation begins.
       </p>
       <div class="reality-grid">
         <div class="reality-card reality-real">
