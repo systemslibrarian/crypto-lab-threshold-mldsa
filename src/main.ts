@@ -21,26 +21,16 @@ if (!app) {
 app.innerHTML = `
   <a class="skip-link" href="#live-demo">Skip to live demo</a>
   <div class="shell">
-    <header class="hero-section panel">
-      <div class="hero-copy">
-        <div class="eyebrow">Threshold ML-DSA • FIPS 204 compatibility demo</div>
-        <h1>Two parties. One standard ML-DSA signature.</h1>
-        <p class="lead">
-          A browser-based educational simulation of threshold signing for ML-DSA-65 inspired by
-          Trilithium, Quorus, TOPCOAT, and related 2024–2026 research.
-        </p>
-        <div class="badge-row">
-          <span class="badge badge-gold">Educational only</span>
-          <span class="badge badge-green">Standard verifier compatible</span>
-          <span class="badge badge-purple">No backend</span>
-        </div>
+    <header class="cl-hero">
+      <div class="cl-hero-main">
+        <h1 class="cl-hero-title">Threshold ML-DSA</h1>
+        <p class="cl-hero-sub">FIPS 204 · Lattice threshold signing</p>
+        <p class="cl-hero-desc">Split an ML-DSA-65 signing key across a server and a phone, then watch both parties jointly produce one signature that verifies under the standard FIPS 204 verifier.</p>
       </div>
-      <div class="hero-side">
-        <blockquote>
-          “Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God.”
-          <span>— 1 Corinthians 10:31</span>
-        </blockquote>
-      </div>
+      <aside class="cl-hero-why" aria-label="Why it matters">
+        <span class="cl-hero-why-label">WHY IT MATTERS</span>
+        <p class="cl-hero-why-text">Post-quantum signatures will guard root CAs, ledgers, and firmware — targets too valuable to trust to one key holder. But ML-DSA's Fiat–Shamir-with-aborts and non-linear rounding make it far harder to split than classical Schnorr or BLS.</p>
+      </aside>
     </header>
 
     <section class="notice-row" aria-label="Protocol status">
