@@ -9,6 +9,13 @@ import {
   thresholdSign,
   type WalkthroughStep,
 } from './threshold-sign';
+import {
+  TOY_Q,
+  TOY_Z_BOUND,
+  computeRound,
+  computeUntilAccepted,
+  type RoundTrace,
+} from './trace';
 
 type StatusTone = 'idle' | 'working' | 'success' | 'warning' | 'danger';
 
@@ -67,6 +74,37 @@ app.innerHTML = `
       </div>
     </section>
 
+    <section class="panel share-demo-panel" aria-labelledby="share-demo-heading">
+      <h3 id="share-demo-heading">The one real idea you can hold: additive secret sharing</h3>
+      <p class="small-note">
+        This is the primitive the whole scheme rests on, and it is <strong>genuinely real here</strong> —
+        not illustrative. The real ML-DSA-65 secret key is stored as two byte arrays. For each key byte,
+        <code>server + phone (mod 256) = the real key byte</code>. Each share on its own is uniform random
+        and reveals nothing. Below is one live byte pair from the actual split key. Click combine to sum them.
+      </p>
+      <div class="share-combine" aria-live="polite">
+        <div class="share-cell share-cell-server">
+          <span class="share-cell-label">SERVER share byte</span>
+          <strong id="share-server-byte" class="share-byte">—</strong>
+        </div>
+        <span class="share-op" aria-hidden="true">+</span>
+        <div class="share-cell share-cell-phone">
+          <span class="share-cell-label">PHONE share byte</span>
+          <strong id="share-phone-byte" class="share-byte">—</strong>
+        </div>
+        <span class="share-op" aria-hidden="true">= (mod 256)</span>
+        <div class="share-cell share-cell-result">
+          <span class="share-cell-label">Real key byte</span>
+          <strong id="share-result-byte" class="share-byte">?</strong>
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="share-combine-btn" class="secondary-button" type="button" aria-controls="share-result-byte">Combine shares (sum mod 256)</button>
+        <button id="share-reroll-btn" class="secondary-button" type="button" aria-controls="share-server-byte">Show a different byte</button>
+      </div>
+      <p id="share-combine-note" class="small-note share-combine-note">Each share is uniform on 0–255, so neither byte alone tells you anything. Only their sum mod 256 recovers the secret byte.</p>
+    </section>
+
     <section class="panel reality-panel" aria-labelledby="reality-heading">
       <h3 id="reality-heading">What's real, and what's simulated</h3>
       <p class="small-note">
@@ -97,6 +135,19 @@ app.innerHTML = `
         <em>distributed-trust</em> property is illustrated, not enforced. Building the real thing is
         the open research problem this lab is about — see the landscape table below.
       </p>
+
+      <div class="contrast-experiment">
+        <h4 id="contrast-heading">Feel the difference: escrow vs. a real threshold scheme</h4>
+        <p class="small-note">
+          Both paths start from the same two byte shares. Watch what happens to the full secret key
+          buffer. Toggle to compare.
+        </p>
+        <div class="button-row" role="group" aria-labelledby="contrast-heading">
+          <button id="contrast-escrow" class="secondary-button" type="button" aria-pressed="true" aria-controls="contrast-view">This build: combine then sign (escrow)</button>
+          <button id="contrast-ideal" class="secondary-button" type="button" aria-pressed="false" aria-controls="contrast-view">Real threshold: never combine</button>
+        </div>
+        <div id="contrast-view" class="contrast-view" aria-live="polite"></div>
+      </div>
     </section>
 
     <section class="exhibits-grid">
@@ -120,20 +171,58 @@ app.innerHTML = `
             </ul>
           </div>
         </div>
+
+        <div class="aborts-demo">
+          <h4 id="aborts-heading">Why aborts make it expensive</h4>
+          <p class="small-note">
+            A single-signer ML-DSA just retries a rejected round by itself. In a <em>threshold</em> scheme
+            every rejection makes <strong>all</strong> parties throw away their work and restart together
+            with fresh randomness — a fully coordinated do-over. Press sign and watch the restart counter.
+          </p>
+          <button id="aborts-run" class="secondary-button" type="button" aria-controls="aborts-view">Sign until accepted (may take restarts)</button>
+          <div id="aborts-view" class="aborts-view" role="region" aria-label="Rejection restart trace" aria-live="polite">
+            <p class="small-note">No round run yet. Because each round is fresh randomness, some are rejected by the norm check.</p>
+          </div>
+        </div>
       </article>
 
-      <article class="panel exhibit">
-        <h3>Exhibit 2 — Trilithium-style protocol walkthrough</h3>
-        <p class="small-note">Illustrative: these steps show the <em>shape</em> of a real two-party lattice signing round. In this teaching build the actual signature comes from step 4′ below — the two byte shares are combined and the standard signer runs.</p>
-        <ol class="steps-list">
-          <li>Server and phone sample additive nonce shares y^S and y^P.</li>
-          <li>Each computes a local A·y contribution and exchanges masked summaries.</li>
-          <li>Both derive the shared high bits w₁ and challenge c.</li>
-          <li>Each computes z^i = y^i + c·s₁^i.</li>
-          <li>A secure comparison checks the hidden norm bound.</li>
-          <li>If rejected, both restart with fresh randomness.</li>
-          <li>If accepted, the final signature verifies with the standard ML-DSA verifier.</li>
-        </ol>
+      <article class="panel exhibit trace-exhibit">
+        <h3>Exhibit 2 — Walk a signing round, one step at a time</h3>
+        <p class="small-note">
+          <strong>Illustrative choreography</strong> — this shows the <em>shape</em> of a real two-party
+          lattice signing round. The tiny numbers below are computed live with genuine modular /
+          additive-sharing math on toy 3-coefficient polynomials (mod ${TOY_Q}), so you can watch the
+          actual values flow between the two parties. It does <em>not</em> produce the signature the live
+          demo emits — that still comes from the honest combine-then-sign path. Simplified numbers, real math.
+        </p>
+        <div class="button-row trace-controls">
+          <button id="trace-next" class="primary-button" type="button" aria-controls="trace-stage">Reveal round 1: sample nonces</button>
+          <button id="trace-reset" class="secondary-button" type="button" aria-controls="trace-stage">Fresh randomness (restart)</button>
+        </div>
+        <div id="trace-stage" class="trace-stage" tabindex="0" role="region" aria-label="Round-by-round signing trace" aria-live="polite">
+          <p class="small-note trace-placeholder">Press <strong>Reveal round 1</strong> to begin. Each press advances one step of the protocol and animates the numbers moving between the SERVER and PHONE columns.</p>
+        </div>
+        <details class="glossary">
+          <summary>Glossary — what these terms mean (and why the step exists)</summary>
+          <dl class="glossary-list">
+            <dt>Nonce share (y^S, y^P)</dt>
+            <dd>A one-time random value each party samples. Masks the secret so the response leaks nothing. <em>Why:</em> without a fresh nonce, two signatures would expose the key.</dd>
+            <dt>Commitment w = A·y</dt>
+            <dd>A public "photo" of the combined nonce. <em>Why:</em> it binds the parties to their nonces before the challenge is chosen.</dd>
+            <dt>High bits w₁ (HighBits)</dt>
+            <dd>Only the top bits of w — the low bits are dropped as noise. <em>Why:</em> ML-DSA rounds w to shrink signatures; this rounding is <strong>non-linear</strong>, which is exactly what makes it hard to split.</dd>
+            <dt>Fiat–Shamir challenge c</dt>
+            <dd>A small pseudo-random polynomial derived by hashing w₁ and the message. <em>Why:</em> it replaces an interactive verifier with a hash, turning identification into a signature.</dd>
+            <dt>Response z = y + c·s₁</dt>
+            <dd>Each party's masked reply. The nonce hides the secret term c·s₁. <em>Why:</em> z is what the verifier checks, without ever seeing s₁.</dd>
+            <dt>Infinity-norm bound (|z|∞ &lt; β)</dt>
+            <dd>The largest coefficient of z must stay small. <em>Why:</em> if z is too big it leaks information about s₁, so the round is rejected.</dd>
+            <dt>Rejection / abort</dt>
+            <dd>When the norm check fails, the whole round is thrown away and restarted with fresh randomness. <em>Why:</em> this "Fiat–Shamir with aborts" is the core reason threshold ML-DSA is harder than Schnorr — every abort is a coordinated restart.</dd>
+            <dt>Secure comparison</dt>
+            <dd>An MPC protocol that checks |z|∞ &lt; β <em>without</em> revealing z. <em>Why:</em> the parties must decide accept/reject before publishing z, but must not leak it if rejected.</dd>
+          </dl>
+        </details>
       </article>
 
       <article id="live-demo" class="panel exhibit live-exhibit" tabindex="-1">
@@ -150,9 +239,17 @@ app.innerHTML = `
           <div class="stat-card"><span>Scenario</span><strong>2-of-2 custody</strong></div>
           <div class="stat-card"><span>Signature</span><strong>—</strong></div>
           <div class="stat-card"><span>Sign time</span><strong>—</strong></div>
-          <div class="stat-card"><span>Key reconstructed</span><strong>—</strong></div>
-          <div class="stat-card"><span>Key non-recon.</span><strong>—</strong></div>
           <div class="stat-card"><span>Verifier</span><strong>—</strong></div>
+        </div>
+        <div id="sign-verdict" class="verdict-grid" aria-live="polite">
+          <div class="verdict-card verdict-idle" id="verdict-sig">
+            <span class="verdict-icon" aria-hidden="true">•</span>
+            <span class="verdict-body"><span class="verdict-label">Signature valid</span><span class="verdict-state">awaiting run</span></span>
+          </div>
+          <div class="verdict-card verdict-idle" id="verdict-trust">
+            <span class="verdict-icon" aria-hidden="true">•</span>
+            <span class="verdict-body"><span class="verdict-label">Distributed-trust enforced</span><span class="verdict-state">awaiting run</span></span>
+          </div>
         </div>
         <div id="protocol-log" class="log-panel" role="log" aria-live="polite" aria-relevant="additions text">Awaiting the first signing run…</div>
       </article>
@@ -184,6 +281,25 @@ app.innerHTML = `
         <p class="small-note">
           No threshold ML-DSA construction is NIST-standardized as of 2026. This lab models the signing-side protocol only.
         </p>
+        <details class="glossary">
+          <summary>Glossary — reading the security column</summary>
+          <dl class="glossary-list">
+            <dt>Parties / t-of-n</dt>
+            <dd>How many key-holders exist (n) and how many must cooperate to sign (t). "2" means both of two must join; "t-of-n" means any t of n suffice.</dd>
+            <dt>Rounds</dt>
+            <dd>Back-and-forth messaging passes needed per signature. More rounds = more network latency and coordination cost.</dd>
+            <dt>UC (Universally Composable)</dt>
+            <dd>The strongest security proof style: the scheme stays secure even when run alongside arbitrary other protocols.</dd>
+            <dt>Malicious security</dt>
+            <dd>Safe even if some parties actively cheat (not just passively observe). Weaker "semi-honest" proofs assume everyone follows the rules.</dd>
+            <dt>Identifiable aborts</dt>
+            <dd>If the protocol fails, it can name <em>which</em> party misbehaved — so a cheater can be removed rather than just stalling everyone.</dd>
+            <dt>FHE-based</dt>
+            <dd>Uses Fully Homomorphic Encryption to compute on encrypted shares. Very flexible (any t-of-n) but currently expensive.</dd>
+            <dt>Std compat (standard-compatible)</dt>
+            <dd>"Yes" means the output is a normal FIPS 204 signature the unmodified verifier accepts — no special verifier needed.</dd>
+          </dl>
+        </details>
       </article>
 
       <article class="panel exhibit applications-exhibit">
@@ -236,6 +352,22 @@ const messageInput = getElement<HTMLTextAreaElement>('#message-input');
 const signButton = getElement<HTMLButtonElement>('#sign-button');
 const phoneToggleButton = getElement<HTMLButtonElement>('#phone-toggle');
 const benchmarkButton = getElement<HTMLButtonElement>('#benchmark-button');
+const verdictSig = getElement<HTMLDivElement>('#verdict-sig');
+const verdictTrust = getElement<HTMLDivElement>('#verdict-trust');
+const traceStage = getElement<HTMLDivElement>('#trace-stage');
+const traceNextButton = getElement<HTMLButtonElement>('#trace-next');
+const traceResetButton = getElement<HTMLButtonElement>('#trace-reset');
+const contrastEscrowButton = getElement<HTMLButtonElement>('#contrast-escrow');
+const contrastIdealButton = getElement<HTMLButtonElement>('#contrast-ideal');
+const contrastView = getElement<HTMLDivElement>('#contrast-view');
+const abortsRunButton = getElement<HTMLButtonElement>('#aborts-run');
+const abortsView = getElement<HTMLDivElement>('#aborts-view');
+const shareServerByte = getElement<HTMLElement>('#share-server-byte');
+const sharePhoneByte = getElement<HTMLElement>('#share-phone-byte');
+const shareResultByte = getElement<HTMLElement>('#share-result-byte');
+const shareCombineButton = getElement<HTMLButtonElement>('#share-combine-btn');
+const shareRerollButton = getElement<HTMLButtonElement>('#share-reroll-btn');
+const shareCombineNote = getElement<HTMLParagraphElement>('#share-combine-note');
 
 function getElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -310,6 +442,26 @@ function renderStats(entries: Array<{ label: string; value: string }>): void {
     .join('');
 }
 
+type VerdictTone = 'idle' | 'good' | 'bad';
+
+// State via icon + text + color (never color alone), per the a11y rules.
+const VERDICT_ICON: Record<VerdictTone, string> = { idle: '•', good: '✓', bad: '✕' };
+
+function setVerdict(card: HTMLDivElement, tone: VerdictTone, label: string, state: string): void {
+  card.className = `verdict-card verdict-${tone}`;
+  const icon = card.querySelector<HTMLElement>('.verdict-icon');
+  const labelEl = card.querySelector<HTMLElement>('.verdict-label');
+  const stateEl = card.querySelector<HTMLElement>('.verdict-state');
+  if (icon) icon.textContent = VERDICT_ICON[tone];
+  if (labelEl) labelEl.textContent = label;
+  if (stateEl) stateEl.textContent = state;
+}
+
+function resetVerdicts(): void {
+  setVerdict(verdictSig, 'idle', 'Signature valid', 'awaiting run');
+  setVerdict(verdictTrust, 'idle', 'Distributed-trust enforced', 'awaiting run');
+}
+
 function renderSteps(steps: WalkthroughStep[]): void {
   protocolLog.innerHTML = steps
     .map((step) => `
@@ -338,6 +490,7 @@ async function ensureKeypair(): Promise<ThresholdKeyPair> {
     dkgLogs.push(`Round ${round}: ${description} (${formatBytes(bytesExchanged)})`);
   });
   renderMaskedShares(keypair);
+  renderShareDemo();
 
   const check = await verifyKeyShares(keypair);
   protocolLog.innerHTML = dkgLogs.map((entry) => `<div class="log-row"><div>${escapeHtml(entry)}</div></div>`).join('');
@@ -375,10 +528,10 @@ async function runSigningDemo(): Promise<void> {
         { label: 'Scenario', value: '2-of-2 custody' },
         { label: 'Signature', value: '—' },
         { label: 'Sign time', value: '—' },
-        { label: 'Key reconstructed', value: 'No (share missing)' },
-        { label: 'Key non-recon.', value: 'Not achieved' },
         { label: 'Verifier', value: blocked ? 'Sign blocked' : 'Unexpected' },
       ]);
+      setVerdict(verdictSig, 'bad', 'Signature valid', 'No signature — phone share missing');
+      setVerdict(verdictTrust, 'good', 'Custody enforced', 'One party alone cannot sign');
       protocolLog.innerHTML = `
         <div class="log-row log-reject">
           <div class="log-top"><strong>Drop-one test</strong><span>2-of-2 enforced</span></div>
@@ -393,10 +546,14 @@ async function runSigningDemo(): Promise<void> {
     renderSteps(result.steps);
 
     jointArtifactText.textContent = `σ = ${bytesToHex(result.signature, 20)}…`;
+    const verifies = result.signatureVerifiesWithStandardMLDSA;
+    // The signature is genuinely valid — but the key WAS reconstructed to make it,
+    // so distributed-trust was NOT enforced. The banner must not read as an
+    // unqualified "success"; pair the green signature result with an amber caveat.
     setStatus(
-      result.signatureVerifiesWithStandardMLDSA ? 'success' : 'danger',
-      result.signatureVerifiesWithStandardMLDSA
-        ? 'Success: the joint signature verifies with the standard ML-DSA verifier.'
+      verifies ? 'warning' : 'danger',
+      verifies
+        ? 'Signature is valid — but this build combined the key to make it. Custody achieved; key-non-reconstruction NOT achieved.'
         : 'The signature failed standard verification.',
     );
 
@@ -404,10 +561,22 @@ async function runSigningDemo(): Promise<void> {
       { label: 'Scenario', value: '2-of-2 custody' },
       { label: 'Signature', value: `${result.signature.length} bytes` },
       { label: 'Sign time', value: formatTime(result.signTimeMs) },
-      { label: 'Key reconstructed', value: 'Yes (teaching build)' },
-      { label: 'Key non-recon.', value: 'Not achieved' },
-      { label: 'Verifier', value: result.signatureVerifiesWithStandardMLDSA ? 'PASS' : 'FAIL' },
+      { label: 'Verifier', value: verifies ? 'PASS' : 'FAIL' },
     ]);
+    setVerdict(
+      verdictSig,
+      verifies ? 'good' : 'bad',
+      'Signature valid',
+      verifies ? 'PASS — standard FIPS 204 verifier accepts' : 'FAIL — verifier rejected',
+    );
+    // This is the honest core: the key was combined in one place, so the hard
+    // property is NOT achieved. Red, always, on a successful escrow sign.
+    setVerdict(
+      verdictTrust,
+      'bad',
+      'Distributed-trust enforced',
+      'NOT achieved — key was reconstructed to sign',
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     setStatus('danger', `Signing aborted: ${message}`);
@@ -473,7 +642,270 @@ async function runInitialChecks(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Exhibit 2 — interactive round trace (illustrative choreography, real toy math)
+// ---------------------------------------------------------------------------
+
+let traceRound: RoundTrace = computeRound();
+let traceStep = 0;
+
+function fmtPoly(p: number[]): string {
+  return `[${p.map((v) => (v >= 0 ? ` ${v}` : `${v}`)).join(', ')}]`;
+}
+
+interface TraceStepDef {
+  title: string;
+  next: string;
+  render(r: RoundTrace): string;
+}
+
+const TRACE_STEPS: TraceStepDef[] = [
+  {
+    title: 'Round · Step 1 — sample nonce shares',
+    next: 'Next: combine into commitment w',
+    render: (r) => `
+      <p>Each party independently samples a fresh random <strong>nonce share</strong>. Neither shares it with the other yet.</p>
+      <div class="trace-flow">
+        <div class="trace-party trace-server"><span class="trace-tag">SERVER</span><code>y^S = ${fmtPoly(r.yServer)}</code></div>
+        <div class="trace-party trace-phone"><span class="trace-tag">PHONE</span><code>y^P = ${fmtPoly(r.yPhone)}</code></div>
+      </div>
+      <p class="small-note">The nonce masks the secret later, so the response leaks nothing.</p>`,
+  },
+  {
+    title: 'Round · Step 2 — commitment w = A·y',
+    next: 'Next: take the high bits w₁',
+    render: (r) => `
+      <p>The parties jointly form the public commitment <code>w</code>. (Illustrative: modelled here as the sum of the two nonce shares.)</p>
+      <div class="trace-flow">
+        <div class="trace-party trace-server"><span class="trace-tag">SERVER</span><code>y^S = ${fmtPoly(r.yServer)}</code></div>
+        <span class="trace-op" aria-hidden="true">+</span>
+        <div class="trace-party trace-phone"><span class="trace-tag">PHONE</span><code>y^P = ${fmtPoly(r.yPhone)}</code></div>
+      </div>
+      <div class="trace-result trace-shared"><span class="trace-tag">SHARED</span><code>w = ${fmtPoly(r.w)}</code></div>`,
+  },
+  {
+    title: 'Round · Step 3 — high bits w₁',
+    next: 'Next: derive the challenge c',
+    render: (r) => `
+      <p>Only the <strong>high bits</strong> of w survive — the low bits are dropped as noise. This rounding is non-linear, which is what makes ML-DSA hard to split.</p>
+      <div class="trace-result trace-shared"><span class="trace-tag">w</span><code>${fmtPoly(r.w)}</code></div>
+      <div class="trace-result trace-highlight"><span class="trace-tag">w₁ = HighBits(w)</span><code>${fmtPoly(r.w1)}</code></div>`,
+  },
+  {
+    title: 'Round · Step 4 — Fiat–Shamir challenge c',
+    next: 'Next: compute the responses z',
+    render: (r) => `
+      <p>Hashing w₁ (and the message) yields the <strong>challenge</strong> c — here a small ±1 polynomial. Both parties derive the same c.</p>
+      <div class="trace-result trace-shared"><span class="trace-tag">w₁</span><code>${fmtPoly(r.w1)}</code></div>
+      <div class="trace-result trace-highlight"><span class="trace-tag">c = H(w₁, msg)</span><code>${fmtPoly(r.c)}</code></div>`,
+  },
+  {
+    title: 'Round · Step 5 — responses z = y + c·s₁',
+    next: 'Next: check the norm bound',
+    render: (r) => `
+      <p>Each party computes its <strong>response share</strong> locally: nonce plus challenge times its secret-key share <code>s₁^i</code>. The nonce hides the secret term.</p>
+      <div class="trace-flow">
+        <div class="trace-party trace-server"><span class="trace-tag">SERVER</span><code>z^S = y^S + c·s₁^S = ${fmtPoly(r.zServer)}</code></div>
+        <div class="trace-party trace-phone"><span class="trace-tag">PHONE</span><code>z^P = y^P + c·s₁^P = ${fmtPoly(r.zPhone)}</code></div>
+      </div>
+      <div class="trace-result trace-shared"><span class="trace-tag">z = z^S + z^P</span><code>${fmtPoly(r.z)}</code></div>`,
+  },
+  {
+    title: 'Round · Step 6 — infinity-norm check',
+    next: 'Start a fresh round',
+    render: (r) => {
+      const ok = r.accepted;
+      return `
+      <p>A <strong>secure comparison</strong> checks that the largest coefficient of z stays under the bound <code>β = ${TOY_Z_BOUND}</code> — without revealing z if it fails.</p>
+      <div class="trace-result ${ok ? 'trace-accept' : 'trace-reject'}">
+        <span class="trace-tag">|z|∞ = ${r.zNorm} ${ok ? '&lt;' : '≥'} β = ${TOY_Z_BOUND}</span>
+        <code>${ok ? '✓ ACCEPT — publish z; the round succeeds' : '✕ REJECT — abort; both parties restart with fresh randomness'}</code>
+      </div>
+      <p class="small-note">${ok
+        ? 'This round was accepted. In a real scheme z would now be published and the signature verifies with the standard verifier.'
+        : 'This round was rejected. Press “Fresh randomness (restart)” to see the coordinated do-over that makes threshold ML-DSA expensive.'}</p>`;
+    },
+  },
+];
+
+function renderTrace(): void {
+  const shown = TRACE_STEPS.slice(0, traceStep);
+  if (shown.length === 0) {
+    traceStage.innerHTML = '<p class="small-note trace-placeholder">Press <strong>Reveal round 1</strong> to begin. Each press advances one step of the protocol and animates the numbers moving between the SERVER and PHONE columns.</p>';
+  } else {
+    traceStage.innerHTML = shown
+      .map((step, i) => `
+        <div class="trace-card${i === shown.length - 1 ? ' trace-card-new' : ''}">
+          <div class="trace-card-title">${escapeHtml(step.title)}</div>
+          ${step.render(traceRound)}
+        </div>`)
+      .join('');
+  }
+  if (traceStep >= TRACE_STEPS.length) {
+    traceNextButton.textContent = traceRound.accepted ? 'Round accepted — start a new round' : 'Round rejected — restart with fresh randomness';
+  } else {
+    traceNextButton.textContent = traceStep === 0
+      ? 'Reveal round 1: sample nonces'
+      : TRACE_STEPS[traceStep - 1].next;
+  }
+}
+
+function advanceTrace(): void {
+  if (traceStep >= TRACE_STEPS.length) {
+    // Completed a round — draw a fresh one and restart the walkthrough.
+    traceRound = computeRound();
+    traceStep = 0;
+  }
+  traceStep += 1;
+  renderTrace();
+}
+
+function resetTrace(): void {
+  traceRound = computeRound();
+  traceStep = 0;
+  renderTrace();
+}
+
+// ---------------------------------------------------------------------------
+// What's-real panel — escrow vs. ideal contrast experiment
+// ---------------------------------------------------------------------------
+
+let contrastMode: 'escrow' | 'ideal' = 'escrow';
+
+function renderContrast(): void {
+  contrastEscrowButton.setAttribute('aria-pressed', String(contrastMode === 'escrow'));
+  contrastIdealButton.setAttribute('aria-pressed', String(contrastMode === 'ideal'));
+
+  const serverBytes = '2f a1 7c 04 e9 …';
+  const phoneBytes = 'd1 63 88 fb 12 …';
+
+  if (contrastMode === 'escrow') {
+    contrastView.innerHTML = `
+      <div class="contrast-row">
+        <div class="contrast-share"><span class="contrast-tag">SERVER share</span><code>${serverBytes}</code></div>
+        <span class="contrast-op" aria-hidden="true">+</span>
+        <div class="contrast-share"><span class="contrast-tag">PHONE share</span><code>${phoneBytes}</code></div>
+      </div>
+      <div class="contrast-key contrast-key-live">
+        <span class="contrast-tag">Full secret key buffer</span>
+        <code>ff 04 f4 ff fb … <span class="contrast-flag">◉ MATERIALIZED IN MEMORY</span></code>
+      </div>
+      <p class="small-note"><strong>This build (escrow):</strong> to sign, both shares are combined into the whole secret key in one place. It lights up red because at that instant a single machine holds the entire key — the exact thing a real threshold scheme must never allow. This is honest split-custody, not threshold signing.</p>`;
+  } else {
+    contrastView.innerHTML = `
+      <div class="contrast-row">
+        <div class="contrast-share"><span class="contrast-tag">SERVER share</span><code>${serverBytes}</code></div>
+        <span class="contrast-op" aria-hidden="true">+</span>
+        <div class="contrast-share"><span class="contrast-tag">PHONE share</span><code>${phoneBytes}</code></div>
+      </div>
+      <div class="contrast-key contrast-key-crossed">
+        <span class="contrast-tag">Full secret key buffer</span>
+        <code><s>ff 04 f4 ff fb …</s> <span class="contrast-flag contrast-flag-ok">✓ NEVER MATERIALIZES</span></code>
+      </div>
+      <p class="small-note"><strong>Real threshold (never combine):</strong> the parties run an MPC protocol so each only ever computes its own share of the response z. The full key buffer on the right is <em>never</em> assembled anywhere — that is the property this build does not achieve, and the open research problem the landscape table catalogues.</p>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Exhibit 1 — aborts / restart-cost micro-demo
+// ---------------------------------------------------------------------------
+
+function runAbortsDemo(): void {
+  const { attempts, rejections } = computeUntilAccepted();
+  const rows = attempts
+    .map((a, i) => {
+      const accepted = a.accepted;
+      return `
+        <div class="abort-row ${accepted ? 'abort-accept' : 'abort-reject'}">
+          <span class="abort-icon" aria-hidden="true">${accepted ? '✓' : '↻'}</span>
+          <span class="abort-label">Attempt ${i + 1}</span>
+          <code>|z|∞ = ${a.zNorm} ${accepted ? '&lt;' : '≥'} β=${TOY_Z_BOUND}</code>
+          <span class="abort-state">${accepted ? 'ACCEPT' : 'REJECT — both parties discard & restart'}</span>
+        </div>`;
+    })
+    .join('');
+  abortsView.innerHTML = `
+    <div class="abort-counter"><strong>${rejections}</strong> coordinated restart${rejections === 1 ? '' : 's'} before one round was accepted.</div>
+    ${rows}
+    <p class="small-note">Every REJECT above is a full round both parties threw away. In a single signer that is cheap; across parties it multiplies the messaging cost — the ×overhead you can measure with “Run quick benchmark”.</p>`;
+}
+
+// ---------------------------------------------------------------------------
+// Live additive-share combine (real bytes from the split key)
+// ---------------------------------------------------------------------------
+
+let shareByteIndex = 0;
+let shareCombined = false;
+
+function currentShareBytes(): { server: number; phone: number; key: number } | null {
+  if (!keypair) return null;
+  const s = keypair.serverShare.secretKeyShare;
+  const p = keypair.phoneShare.secretKeyShare;
+  const idx = shareByteIndex % s.length;
+  const server = s[idx];
+  const phone = p[idx];
+  return { server, phone, key: (server + phone) % 256 };
+}
+
+function renderShareDemo(): void {
+  const bytes = currentShareBytes();
+  if (!bytes) {
+    shareServerByte.textContent = '—';
+    sharePhoneByte.textContent = '—';
+    shareResultByte.textContent = '?';
+    return;
+  }
+  shareServerByte.textContent = String(bytes.server);
+  sharePhoneByte.textContent = String(bytes.phone);
+  if (shareCombined) {
+    shareResultByte.textContent = String(bytes.key);
+    shareResultByte.classList.add('share-byte-revealed');
+    shareCombineNote.textContent = `${bytes.server} + ${bytes.phone} = ${bytes.server + bytes.phone}, and ${bytes.server + bytes.phone} mod 256 = ${bytes.key}. That is byte ${shareByteIndex % (keypair?.serverShare.secretKeyShare.length ?? 1)} of the real ML-DSA-65 secret key — recovered only by summing both shares.`;
+  } else {
+    shareResultByte.textContent = '?';
+    shareResultByte.classList.remove('share-byte-revealed');
+    shareCombineNote.textContent = 'Each share is uniform on 0–255, so neither byte alone tells you anything. Only their sum mod 256 recovers the secret byte.';
+  }
+}
+
 updatePhoneToggleButton();
+renderTrace();
+renderContrast();
+resetVerdicts();
+renderShareDemo();
+
+traceNextButton.addEventListener('click', () => {
+  advanceTrace();
+});
+
+traceResetButton.addEventListener('click', () => {
+  resetTrace();
+});
+
+contrastEscrowButton.addEventListener('click', () => {
+  contrastMode = 'escrow';
+  renderContrast();
+});
+
+contrastIdealButton.addEventListener('click', () => {
+  contrastMode = 'ideal';
+  renderContrast();
+});
+
+abortsRunButton.addEventListener('click', () => {
+  runAbortsDemo();
+});
+
+shareCombineButton.addEventListener('click', () => {
+  shareCombined = true;
+  renderShareDemo();
+});
+
+shareRerollButton.addEventListener('click', () => {
+  shareByteIndex += 1;
+  shareCombined = false;
+  renderShareDemo();
+});
 
 signButton.addEventListener('click', () => {
   void runSigningDemo();

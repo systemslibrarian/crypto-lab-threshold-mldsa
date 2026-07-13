@@ -651,6 +651,423 @@ td {
   }
 }
 
+/* --- Two-indicator verdict cards (replaces the mixed-signal stat cards) --- */
+.verdict-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.verdict-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--inset-soft);
+}
+
+.verdict-icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 1rem;
+  border: 1.5px solid currentColor;
+}
+
+.verdict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.verdict-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.verdict-state {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.verdict-good {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+.verdict-good .verdict-icon {
+  color: var(--green-ink);
+}
+
+.verdict-bad {
+  background: rgba(255, 51, 102, 0.12);
+  border-color: rgba(255, 51, 102, 0.45);
+}
+
+.verdict-bad .verdict-icon {
+  color: var(--danger);
+}
+
+:root[data-theme='light'] .verdict-bad .verdict-icon {
+  color: #c01043;
+}
+
+.verdict-idle .verdict-icon {
+  color: var(--muted);
+}
+
+/* --- Interactive round trace (Exhibit 2) --- */
+.trace-controls {
+  margin: 12px 0;
+}
+
+.trace-stage {
+  display: grid;
+  gap: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--inset);
+  padding: 14px;
+  min-height: 90px;
+}
+
+.trace-card {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--inset-soft);
+  padding: 12px 14px;
+}
+
+.trace-card p {
+  margin: 6px 0;
+}
+
+.trace-card-title {
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.trace-card-new {
+  animation: trace-pop 0.35s ease;
+  border-color: rgba(157, 78, 221, 0.5);
+}
+
+@keyframes trace-pop {
+  from { transform: translateY(6px); opacity: 0.2; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.trace-flow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.trace-party,
+.trace-result {
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+}
+
+.trace-party code,
+.trace-result code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.trace-server {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.trace-phone {
+  background: rgba(255, 0, 170, 0.1);
+  border-color: rgba(255, 0, 170, 0.3);
+}
+
+.trace-shared {
+  background: rgba(157, 78, 221, 0.12);
+  border-color: rgba(157, 78, 221, 0.35);
+}
+
+.trace-highlight {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.trace-result {
+  margin: 8px 0;
+}
+
+.trace-accept {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+.trace-reject {
+  background: rgba(255, 51, 102, 0.12);
+  border-color: rgba(255, 51, 102, 0.45);
+}
+
+.trace-tag,
+.contrast-tag,
+.abort-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.trace-op,
+.contrast-op {
+  font-weight: 700;
+  color: var(--purple-ink);
+}
+
+/* --- Glossary (details/summary) --- */
+.glossary {
+  margin-top: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--inset-soft);
+  padding: 4px 14px;
+}
+
+.glossary > summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.glossary-list {
+  margin: 0 0 12px;
+}
+
+.glossary-list dt {
+  font-weight: 700;
+  color: var(--gold-ink);
+  margin-top: 10px;
+}
+
+.glossary-list dd {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* --- Live additive-share combine --- */
+.share-demo-panel {
+  padding: 20px;
+}
+
+.share-combine {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.share-cell {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.share-cell-server {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.share-cell-phone {
+  background: rgba(255, 0, 170, 0.1);
+  border-color: rgba(255, 0, 170, 0.3);
+}
+
+.share-cell-result {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.share-cell-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.share-byte {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.share-byte-revealed {
+  color: var(--gold-ink);
+}
+
+.share-op {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--purple-ink);
+  padding-bottom: 10px;
+}
+
+.share-combine-note {
+  margin-top: 10px;
+}
+
+/* --- Escrow vs. ideal contrast experiment --- */
+.contrast-experiment {
+  margin-top: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--inset);
+  padding: 16px;
+}
+
+.contrast-experiment h4,
+.aborts-demo h4 {
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.contrast-view {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.contrast-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contrast-share,
+.contrast-key {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+}
+
+.contrast-share code,
+.contrast-key code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text);
+}
+
+.contrast-key-live {
+  background: rgba(255, 51, 102, 0.14);
+  border-color: rgba(255, 51, 102, 0.5);
+}
+
+.contrast-key-crossed {
+  background: rgba(0, 255, 136, 0.08);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+.contrast-flag {
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--danger);
+}
+
+:root[data-theme='light'] .contrast-flag {
+  color: #c01043;
+}
+
+.contrast-flag-ok {
+  color: var(--green-ink);
+}
+
+.contrast-key-crossed s {
+  color: var(--muted);
+}
+
+/* --- Aborts / restart-cost micro-demo --- */
+.aborts-demo {
+  margin-top: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--inset);
+  padding: 16px;
+}
+
+.aborts-view {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.abort-counter {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.abort-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+}
+
+.abort-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text);
+}
+
+.abort-icon {
+  font-weight: 800;
+}
+
+.abort-state {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.abort-accept {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.4);
+}
+
+.abort-reject {
+  background: rgba(255, 51, 102, 0.1);
+  border-color: rgba(255, 51, 102, 0.35);
+}
+
+@media (max-width: 640px) {
+  .verdict-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

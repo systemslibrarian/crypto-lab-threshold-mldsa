@@ -18,13 +18,15 @@ The demo explores those questions with an educational two-party **split-custody*
 - **THED** — ePrint 2026/638
 - **Threshold Raccoon** — Saarinen, EUROCRYPT 2024
 
-The live UI includes five exhibits:
+The live UI includes five exhibits, plus three hands-on teaching widgets layered on top of the honesty framing:
 
-1. Why threshold ML-DSA is harder than classical threshold signatures
-2. A Trilithium-style step-by-step protocol walkthrough
-3. Interactive two-party (split-custody) signing, with each step labelled real or illustrative
-4. A comparison table of the 2024–2026 threshold ML-DSA research landscape
-5. Real-world applications for post-quantum multi-party signing
+1. Why threshold ML-DSA is harder than classical threshold signatures — with an interactive **"why aborts make it expensive"** micro-demo that runs rounds until one is accepted and counts the coordinated restarts.
+2. An interactive **step-by-step protocol walkthrough** you advance one round at a time: the two parties' nonce shares combine into `w`, then `w₁` high bits, the Fiat–Shamir challenge `c`, and `z = y + c·s₁`, with a live infinity-norm accept/reject check. The tiny numbers are computed with genuine toy modular / additive-sharing math (illustrative choreography, real arithmetic). Includes an inline glossary of the lattice jargon.
+3. Interactive two-party (split-custody) signing, with each step labelled real or illustrative, and **two separate result indicators** — *Signature valid* (green) vs *Distributed-trust enforced* (red) — so the reward colour matches the real security property.
+4. A comparison table of the 2024–2026 threshold ML-DSA research landscape, with a glossary for the security column (UC, malicious, identifiable aborts, FHE-based, std compat).
+5. Real-world applications for post-quantum multi-party signing.
+
+Two additional interactive panels make the honesty concrete: a **live additive-share combiner** (click to sum one real key byte's two shares mod 256) and an **escrow-vs-ideal contrast experiment** (watch the full-key buffer light up red when combined, or be crossed out and never materialize in a real threshold scheme).
 
 > This repo is **educational, not production-safe**. No threshold ML-DSA scheme is NIST-standardized as of 2026.
 
@@ -44,7 +46,7 @@ Use this demo when you want to:
 
 **[systemslibrarian.github.io/crypto-lab-threshold-mldsa](https://systemslibrarian.github.io/crypto-lab-threshold-mldsa/)**
 
-The live UI walks through five exhibits: why threshold ML-DSA is harder than classical threshold signatures, a Trilithium-style step-by-step protocol walkthrough (with every step labelled real or illustrative), interactive two-party split-custody signing, a comparison table of the 2024–2026 threshold ML-DSA research landscape, and real-world applications for post-quantum multi-party signing. The math is genuine ML-DSA-65 from `@noble/post-quantum`, so every emitted signature verifies under the unmodified standard FIPS 204 verifier.
+The live UI walks through five exhibits: why threshold ML-DSA is harder than classical threshold signatures (with an interactive rejection/restart micro-demo), an interactive round-by-round protocol walkthrough you advance one step at a time with live toy math (every step labelled real or illustrative, plus a jargon glossary), interactive two-party split-custody signing with separate *Signature valid* / *Distributed-trust enforced* indicators, a comparison table of the 2024–2026 threshold ML-DSA research landscape, and real-world applications for post-quantum multi-party signing. A live additive-share combiner and an escrow-vs-ideal contrast experiment make the key-non-reconstruction gap tangible. The math is genuine ML-DSA-65 from `@noble/post-quantum`, so every emitted signature verifies under the unmodified standard FIPS 204 verifier.
 
 ## What Can Go Wrong
 

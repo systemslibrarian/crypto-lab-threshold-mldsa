@@ -61,6 +61,34 @@ async function driveDemos(page: Page): Promise<void> {
   // Restore the phone so the enabled/idle styling is also covered.
   await page.locator('#phone-toggle').click();
   await expect(page.locator('#phone-toggle')).toHaveAttribute('aria-pressed', 'false');
+
+  // Interactive round trace: advance through every step so all trace cards,
+  // party columns and the accept/reject result region render at least once.
+  for (let i = 0; i < 6; i += 1) {
+    await page.locator('#trace-next').click();
+  }
+  await expect(page.locator('#trace-stage .trace-card').last()).toBeVisible({ timeout: 10_000 });
+
+  // Escrow vs. ideal contrast experiment: render BOTH the red "materialized"
+  // state and the crossed-out "never materializes" state.
+  await page.locator('#contrast-ideal').click();
+  await expect(page.locator('#contrast-view .contrast-key-crossed')).toBeVisible({ timeout: 10_000 });
+  await page.locator('#contrast-escrow').click();
+  await expect(page.locator('#contrast-view .contrast-key-live')).toBeVisible({ timeout: 10_000 });
+
+  // Aborts micro-demo: run until accepted so both accept and reject rows appear.
+  await page.locator('#aborts-run').click();
+  await expect(page.locator('#aborts-view .abort-accept')).toBeVisible({ timeout: 10_000 });
+
+  // Live additive-share combine: reveal the summed key byte and reroll.
+  await page.locator('#share-combine-btn').click();
+  await expect(page.locator('#share-result-byte.share-byte-revealed')).toBeVisible({ timeout: 10_000 });
+  await page.locator('#share-reroll-btn').click();
+
+  // Open both glossary disclosures so their contents are scanned.
+  await page.evaluate(() => {
+    for (const d of document.querySelectorAll('details.glossary')) (d as HTMLDetailsElement).open = true;
+  });
 }
 
 async function scan(page: Page): Promise<void> {
