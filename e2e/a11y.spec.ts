@@ -62,17 +62,20 @@ async function driveDemos(page: Page): Promise<void> {
   await page.locator('#phone-toggle').click();
   await expect(page.locator('#phone-toggle')).toHaveAttribute('aria-pressed', 'false');
 
-  // Interactive round trace: advance through every step so all trace cards,
-  // party columns and the accept/reject result region render at least once.
+  // Interactive round trace: advance through every step so all lane chips,
+  // channel values and the accept/reject chip render at least once.
   for (let i = 0; i < 6; i += 1) {
     await page.locator('#trace-next').click();
   }
-  await expect(page.locator('#trace-stage .trace-card').last()).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#trace-stage .trace-chip').last()).toBeVisible({ timeout: 10_000 });
 
   // Escrow vs. ideal contrast experiment: render BOTH the red "materialized"
-  // state and the crossed-out "never materializes" state.
+  // escrow state and the animated ideal (never-combine) sequence.
   await page.locator('#contrast-ideal').click();
-  await expect(page.locator('#contrast-view .contrast-key-crossed')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#ideal-stage')).toBeVisible({ timeout: 10_000 });
+  // Play the ideal round so every step's lane chips and the accept chip render.
+  await page.locator('#ideal-play').click();
+  await expect(page.locator('#ideal-channel-slot .ideal-chip-accept')).toBeVisible({ timeout: 15_000 });
   await page.locator('#contrast-escrow').click();
   await expect(page.locator('#contrast-view .contrast-key-live')).toBeVisible({ timeout: 10_000 });
 

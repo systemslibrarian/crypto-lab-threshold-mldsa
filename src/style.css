@@ -1068,6 +1068,403 @@ td {
   }
 }
 
+/* --- Guided "start here" path --- */
+.guided-path {
+  padding: 16px 20px;
+}
+
+.guided-path-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--gold-ink);
+  margin-bottom: 10px;
+}
+
+.guided-path-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  counter-reset: none;
+}
+
+.guided-path-steps li {
+  margin: 0;
+}
+
+.guided-path-steps a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--inset-soft);
+  padding: 10px 12px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.guided-path-steps a:hover {
+  border-color: var(--server);
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.guided-num {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--server), var(--purple));
+  color: #04111e;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.guided-path-note {
+  margin: 12px 0 0;
+}
+
+/* Numbered "stop" badge that labels each guided destination. */
+.stop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: rgba(157, 78, 221, 0.14);
+  color: var(--purple-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stop-badge-num {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--server), var(--purple));
+  color: #04111e;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+/* Invisible scroll anchor that clears the sticky header. */
+.stop-anchor {
+  display: block;
+  height: 0;
+  scroll-margin-top: 96px;
+}
+
+/* Guided-path anchor targets also clear the sticky header. */
+#stop-sharing,
+#stop-hard,
+#stop-walk,
+#stop-ideal {
+  scroll-margin-top: 96px;
+}
+
+/* Honest caveat callout inside the walkthrough. */
+.caveat-note {
+  border-left: 3px solid var(--gold-ink);
+  background: rgba(255, 215, 0, 0.07);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+/* Bridging sentence under the two verdict cards. */
+.verdict-bridge {
+  margin: 0 0 14px;
+  border-left: 3px solid var(--purple);
+  background: rgba(157, 78, 221, 0.08);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+}
+
+@media (max-width: 900px) {
+  .guided-path-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Fixed-lane animated round trace (Exhibit 2) --- */
+.trace-lanes {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.trace-lane {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px;
+  min-height: 96px;
+}
+
+.trace-lane-server {
+  background: rgba(0, 212, 255, 0.07);
+  border-color: rgba(0, 212, 255, 0.28);
+}
+
+.trace-lane-phone {
+  background: rgba(255, 0, 170, 0.07);
+  border-color: rgba(255, 0, 170, 0.28);
+}
+
+.trace-lane-channel {
+  background: rgba(157, 78, 221, 0.08);
+  border-color: rgba(157, 78, 221, 0.32);
+}
+
+.trace-lane-head {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.trace-lane-slots {
+  display: grid;
+  gap: 8px;
+}
+
+.trace-lane-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.trace-chip {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  background: var(--inset-soft);
+}
+
+.trace-chip code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88rem;
+  color: var(--text);
+  background: none;
+  padding: 0;
+}
+
+.trace-chip-server {
+  background: rgba(0, 212, 255, 0.12);
+  border-color: rgba(0, 212, 255, 0.32);
+}
+
+.trace-chip-phone {
+  background: rgba(255, 0, 170, 0.12);
+  border-color: rgba(255, 0, 170, 0.32);
+}
+
+.trace-chip-shared {
+  background: rgba(157, 78, 221, 0.14);
+  border-color: rgba(157, 78, 221, 0.38);
+}
+
+.trace-chip-highlight {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.38);
+}
+
+.trace-chip-accept {
+  background: rgba(0, 255, 136, 0.12);
+  border-color: rgba(0, 255, 136, 0.42);
+}
+
+.trace-chip-reject {
+  background: rgba(255, 51, 102, 0.12);
+  border-color: rgba(255, 51, 102, 0.45);
+}
+
+.trace-chip-hidden {
+  visibility: hidden;
+}
+
+.trace-chip-pop {
+  animation: trace-pop 0.35s ease;
+}
+
+.trace-flight-layer,
+.ideal-flight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.trace-flight-chip,
+.ideal-flight-chip {
+  position: absolute;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
+.trace-stage,
+.ideal-stage {
+  position: relative;
+}
+
+.trace-narration {
+  margin-top: 12px;
+}
+
+.trace-step-title {
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+/* --- Ideal-threshold animated sequence --- */
+.ideal-stage {
+  margin-top: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--inset);
+  padding: 14px;
+}
+
+.ideal-controls {
+  margin-bottom: 12px;
+}
+
+.ideal-lanes {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.ideal-lane {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px;
+  min-height: 90px;
+}
+
+.ideal-lane-server {
+  background: rgba(0, 212, 255, 0.07);
+  border-color: rgba(0, 212, 255, 0.28);
+}
+
+.ideal-lane-phone {
+  background: rgba(255, 0, 170, 0.07);
+  border-color: rgba(255, 0, 170, 0.28);
+}
+
+.ideal-lane-channel {
+  background: rgba(157, 78, 221, 0.08);
+  border-color: rgba(157, 78, 221, 0.32);
+}
+
+.ideal-lane-head {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.ideal-slot {
+  display: grid;
+  gap: 8px;
+}
+
+.ideal-chip {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  background: var(--inset-soft);
+}
+
+.ideal-chip code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  color: var(--text);
+  background: none;
+  padding: 0;
+}
+
+.ideal-chip-server {
+  background: rgba(0, 212, 255, 0.12);
+  border-color: rgba(0, 212, 255, 0.32);
+}
+
+.ideal-chip-phone {
+  background: rgba(255, 0, 170, 0.12);
+  border-color: rgba(255, 0, 170, 0.32);
+}
+
+.ideal-chip-shared {
+  background: rgba(157, 78, 221, 0.14);
+  border-color: rgba(157, 78, 221, 0.38);
+}
+
+.ideal-chip-accept {
+  background: rgba(0, 255, 136, 0.12);
+  border-color: rgba(0, 255, 136, 0.42);
+}
+
+/* Greyed, never-assembled key buffer — the whole point of the ideal path. */
+.ideal-keybuf {
+  margin-top: 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: var(--inset-soft);
+  padding: 10px 12px;
+  opacity: 0.6;
+}
+
+.ideal-keybuf-never {
+  border-color: rgba(0, 255, 136, 0.4);
+  background: rgba(0, 255, 136, 0.06);
+}
+
+.ideal-keybuf code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--muted);
+  background: none;
+  padding: 0;
+}
+
+.ideal-keybuf s {
+  color: var(--muted);
+}
+
+.ideal-caption {
+  margin: 12px 0 0;
+}
+
+@media (max-width: 640px) {
+  .trace-lanes,
+  .ideal-lanes {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

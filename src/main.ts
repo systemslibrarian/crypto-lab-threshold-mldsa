@@ -44,6 +44,18 @@ app.innerHTML = `
       <div id="status-banner" class="status-banner tone-idle" role="status" aria-live="polite" aria-atomic="true">Initializing the two-party ML-DSA-65 demo…</div>
     </section>
 
+    <nav class="guided-path panel" aria-label="Suggested learning path">
+      <span class="guided-path-label">START HERE — a 5-stop path</span>
+      <ol class="guided-path-steps">
+        <li><a href="#stop-sharing"><span class="guided-num">1</span> Hold the one real idea: additive sharing</a></li>
+        <li><a href="#stop-hard"><span class="guided-num">2</span> See why it's hard: aborts &amp; restarts</a></li>
+        <li><a href="#stop-walk"><span class="guided-num">3</span> Walk one round, value by value</a></li>
+        <li><a href="#stop-ideal"><span class="guided-num">4</span> Watch the ideal: never combine the key</a></li>
+        <li><a href="#stop-live"><span class="guided-num">5</span> Sign live — and read both verdicts</a></li>
+      </ol>
+      <p class="small-note guided-path-note">New here? Follow 1→5 in order. Each stop builds the intuition for the next; the research table and benchmark are optional depth once you've walked the path.</p>
+    </nav>
+
     <section class="protocol-stage panel" aria-label="Two-party signing stage">
       <div class="party-panel server-panel">
         <div class="party-head">
@@ -74,7 +86,8 @@ app.innerHTML = `
       </div>
     </section>
 
-    <section class="panel share-demo-panel" aria-labelledby="share-demo-heading">
+    <section id="stop-sharing" class="panel share-demo-panel" aria-labelledby="share-demo-heading">
+      <p class="stop-badge"><span class="stop-badge-num">1</span> Start here</p>
       <h3 id="share-demo-heading">The one real idea you can hold: additive secret sharing</h3>
       <p class="small-note">
         This is the primitive the whole scheme rests on, and it is <strong>genuinely real here</strong> —
@@ -136,11 +149,13 @@ app.innerHTML = `
         the open research problem this lab is about — see the landscape table below.
       </p>
 
-      <div class="contrast-experiment">
+      <div id="stop-ideal" class="contrast-experiment">
+        <p class="stop-badge"><span class="stop-badge-num">4</span> The ideal path</p>
         <h4 id="contrast-heading">Feel the difference: escrow vs. a real threshold scheme</h4>
         <p class="small-note">
           Both paths start from the same two byte shares. Watch what happens to the full secret key
-          buffer. Toggle to compare.
+          buffer. Toggle to compare — then press <strong>Play the ideal round</strong> to watch the
+          never-combine path animate end to end.
         </p>
         <div class="button-row" role="group" aria-labelledby="contrast-heading">
           <button id="contrast-escrow" class="secondary-button" type="button" aria-pressed="true" aria-controls="contrast-view">This build: combine then sign (escrow)</button>
@@ -172,7 +187,8 @@ app.innerHTML = `
           </div>
         </div>
 
-        <div class="aborts-demo">
+        <div id="stop-hard" class="aborts-demo">
+          <p class="stop-badge"><span class="stop-badge-num">2</span> Why it's hard</p>
           <h4 id="aborts-heading">Why aborts make it expensive</h4>
           <p class="small-note">
             A single-signer ML-DSA just retries a rejected round by itself. In a <em>threshold</em> scheme
@@ -186,7 +202,8 @@ app.innerHTML = `
         </div>
       </article>
 
-      <article class="panel exhibit trace-exhibit">
+      <article id="stop-walk" class="panel exhibit trace-exhibit">
+        <p class="stop-badge"><span class="stop-badge-num">3</span> Walk a round</p>
         <h3>Exhibit 2 — Walk a signing round, one step at a time</h3>
         <p class="small-note">
           <strong>Illustrative choreography</strong> — this shows the <em>shape</em> of a real two-party
@@ -195,12 +212,37 @@ app.innerHTML = `
           actual values flow between the two parties. It does <em>not</em> produce the signature the live
           demo emits — that still comes from the honest combine-then-sign path. Simplified numbers, real math.
         </p>
+        <p class="small-note caveat-note" role="note">
+          <strong>Honest caveat about this trace:</strong> to keep the numbers legible it abstracts two
+          things a real ML-DSA round does. The commitment is modelled as <code>w = y^S + y^P</code> rather
+          than <code>w = A·y</code> (the public matrix A is elided), and the challenge is applied as a
+          single scalar <code>c[0]</code> instead of a full sparse polynomial. So the trace faithfully shows
+          the <em>structure</em> — masked exchange, rounding, rejection — but not the full matrix/polynomial
+          algebra. Everything else (the additive sharing and modular arithmetic) is computed for real.
+        </p>
         <div class="button-row trace-controls">
           <button id="trace-next" class="primary-button" type="button" aria-controls="trace-stage">Reveal round 1: sample nonces</button>
           <button id="trace-reset" class="secondary-button" type="button" aria-controls="trace-stage">Fresh randomness (restart)</button>
         </div>
         <div id="trace-stage" class="trace-stage" tabindex="0" role="region" aria-label="Round-by-round signing trace" aria-live="polite">
-          <p class="small-note trace-placeholder">Press <strong>Reveal round 1</strong> to begin. Each press advances one step of the protocol and animates the numbers moving between the SERVER and PHONE columns.</p>
+          <div class="trace-lanes" aria-hidden="false">
+            <div class="trace-lane trace-lane-server">
+              <span class="trace-lane-head">SERVER</span>
+              <div id="trace-lane-server-slots" class="trace-lane-slots"></div>
+            </div>
+            <div class="trace-lane trace-lane-channel">
+              <span class="trace-lane-head">SHARED CHANNEL</span>
+              <div id="trace-lane-channel-slots" class="trace-lane-slots trace-channel-slots"></div>
+            </div>
+            <div class="trace-lane trace-lane-phone">
+              <span class="trace-lane-head">PHONE</span>
+              <div id="trace-lane-phone-slots" class="trace-lane-slots"></div>
+            </div>
+          </div>
+          <div id="trace-flight-layer" class="trace-flight-layer" aria-hidden="true"></div>
+          <div id="trace-narration" class="trace-narration">
+            <p class="small-note trace-placeholder">Press <strong>Reveal round 1</strong> to begin. Each press advances one step; value chips physically travel from the SERVER and PHONE lanes into the shared channel as the arithmetic lands.</p>
+          </div>
         </div>
         <details class="glossary">
           <summary>Glossary — what these terms mean (and why the step exists)</summary>
@@ -226,6 +268,8 @@ app.innerHTML = `
       </article>
 
       <article id="live-demo" class="panel exhibit live-exhibit" tabindex="-1">
+        <span id="stop-live" class="stop-anchor" aria-hidden="true"></span>
+        <p class="stop-badge"><span class="stop-badge-num">5</span> Sign live</p>
         <h3>Exhibit 3 — Live two-party signing</h3>
         <label class="field-label" for="message-input">Message</label>
         <p id="message-help" class="small-note">Enter the message both parties will jointly authorize with ML-DSA-65.</p>
@@ -251,6 +295,7 @@ app.innerHTML = `
             <span class="verdict-body"><span class="verdict-label">Distributed-trust enforced</span><span class="verdict-state">awaiting run</span></span>
           </div>
         </div>
+        <p id="verdict-bridge" class="small-note verdict-bridge">Both cards describe the <strong>same run</strong>: run it and see for yourself. You stopped either party from signing alone (custody, green) — but to actually make the signature, one machine briefly held the whole reconstructed key (no key-non-reconstruction, red). Custody and distributed-trust are two different properties; this build earns the first, not the second.</p>
         <div id="protocol-log" class="log-panel" role="log" aria-live="polite" aria-relevant="additions text">Awaiting the first signing run…</div>
       </article>
 
@@ -653,100 +698,192 @@ function fmtPoly(p: number[]): string {
   return `[${p.map((v) => (v >= 0 ? ` ${v}` : `${v}`)).join(', ')}]`;
 }
 
+const traceLaneServer = getElement<HTMLDivElement>('#trace-lane-server-slots');
+const traceLaneChannel = getElement<HTMLDivElement>('#trace-lane-channel-slots');
+const traceLanePhone = getElement<HTMLDivElement>('#trace-lane-phone-slots');
+const traceFlightLayer = getElement<HTMLDivElement>('#trace-flight-layer');
+const traceNarration = getElement<HTMLDivElement>('#trace-narration');
+
+const prefersReducedMotion = (): boolean =>
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+/** A value chip placed in one of the three fixed lanes. */
+interface Chip {
+  lane: 'server' | 'phone' | 'channel';
+  tone: 'server' | 'phone' | 'shared' | 'highlight' | 'accept' | 'reject';
+  tag: string;
+  value: string;
+  /** If set, this chip flies from the given source lane into its lane on reveal. */
+  flyFrom?: 'server' | 'phone';
+}
+
 interface TraceStepDef {
   title: string;
   next: string;
-  render(r: RoundTrace): string;
+  narration(r: RoundTrace): string;
+  chips(r: RoundTrace): Chip[];
 }
 
 const TRACE_STEPS: TraceStepDef[] = [
   {
-    title: 'Round · Step 1 — sample nonce shares',
-    next: 'Next: combine into commitment w',
-    render: (r) => `
-      <p>Each party independently samples a fresh random <strong>nonce share</strong>. Neither shares it with the other yet.</p>
-      <div class="trace-flow">
-        <div class="trace-party trace-server"><span class="trace-tag">SERVER</span><code>y^S = ${fmtPoly(r.yServer)}</code></div>
-        <div class="trace-party trace-phone"><span class="trace-tag">PHONE</span><code>y^P = ${fmtPoly(r.yPhone)}</code></div>
-      </div>
-      <p class="small-note">The nonce masks the secret later, so the response leaks nothing.</p>`,
+    title: 'Step 1 — sample nonce shares',
+    next: 'Next: values travel → commitment w',
+    narration: () =>
+      '<p>Each party independently samples a fresh random <strong>nonce share</strong> inside its own lane. Nothing has crossed the channel yet.</p>',
+    chips: (r) => [
+      { lane: 'server', tone: 'server', tag: 'y^S', value: fmtPoly(r.yServer) },
+      { lane: 'phone', tone: 'phone', tag: 'y^P', value: fmtPoly(r.yPhone) },
+    ],
   },
   {
-    title: 'Round · Step 2 — commitment w = A·y',
+    title: 'Step 2 — commitment w = A·y',
     next: 'Next: take the high bits w₁',
-    render: (r) => `
-      <p>The parties jointly form the public commitment <code>w</code>. (Illustrative: modelled here as the sum of the two nonce shares.)</p>
-      <div class="trace-flow">
-        <div class="trace-party trace-server"><span class="trace-tag">SERVER</span><code>y^S = ${fmtPoly(r.yServer)}</code></div>
-        <span class="trace-op" aria-hidden="true">+</span>
-        <div class="trace-party trace-phone"><span class="trace-tag">PHONE</span><code>y^P = ${fmtPoly(r.yPhone)}</code></div>
-      </div>
-      <div class="trace-result trace-shared"><span class="trace-tag">SHARED</span><code>w = ${fmtPoly(r.w)}</code></div>`,
+    narration: () =>
+      '<p>Both nonce shares now <strong>travel across the shared channel</strong> and are summed into the public commitment <code>w</code>. (Illustrative: modelled as y^S + y^P; the matrix A is elided — see the caveat above.)</p>',
+    chips: (r) => [
+      { lane: 'server', tone: 'server', tag: 'y^S', value: fmtPoly(r.yServer) },
+      { lane: 'phone', tone: 'phone', tag: 'y^P', value: fmtPoly(r.yPhone) },
+      { lane: 'channel', tone: 'shared', tag: 'w = y^S + y^P', value: fmtPoly(r.w), flyFrom: 'server' },
+    ],
   },
   {
-    title: 'Round · Step 3 — high bits w₁',
+    title: 'Step 3 — high bits w₁',
     next: 'Next: derive the challenge c',
-    render: (r) => `
-      <p>Only the <strong>high bits</strong> of w survive — the low bits are dropped as noise. This rounding is non-linear, which is what makes ML-DSA hard to split.</p>
-      <div class="trace-result trace-shared"><span class="trace-tag">w</span><code>${fmtPoly(r.w)}</code></div>
-      <div class="trace-result trace-highlight"><span class="trace-tag">w₁ = HighBits(w)</span><code>${fmtPoly(r.w1)}</code></div>`,
+    narration: () =>
+      '<p>Only the <strong>high bits</strong> of w survive — the low bits drop as noise. This rounding is non-linear, which is exactly what makes ML-DSA hard to split.</p>',
+    chips: (r) => [
+      { lane: 'channel', tone: 'shared', tag: 'w', value: fmtPoly(r.w) },
+      { lane: 'channel', tone: 'highlight', tag: 'w₁ = HighBits(w)', value: fmtPoly(r.w1) },
+    ],
   },
   {
-    title: 'Round · Step 4 — Fiat–Shamir challenge c',
+    title: 'Step 4 — Fiat–Shamir challenge c',
     next: 'Next: compute the responses z',
-    render: (r) => `
-      <p>Hashing w₁ (and the message) yields the <strong>challenge</strong> c — here a small ±1 polynomial. Both parties derive the same c.</p>
-      <div class="trace-result trace-shared"><span class="trace-tag">w₁</span><code>${fmtPoly(r.w1)}</code></div>
-      <div class="trace-result trace-highlight"><span class="trace-tag">c = H(w₁, msg)</span><code>${fmtPoly(r.c)}</code></div>`,
+    narration: () =>
+      '<p>Hashing w₁ (and the message) yields the shared <strong>challenge</strong> c — here a small ±1 polynomial. Both parties derive the same c from the channel.</p>',
+    chips: (r) => [
+      { lane: 'channel', tone: 'shared', tag: 'w₁', value: fmtPoly(r.w1) },
+      { lane: 'channel', tone: 'highlight', tag: 'c = H(w₁, msg)', value: fmtPoly(r.c) },
+    ],
   },
   {
-    title: 'Round · Step 5 — responses z = y + c·s₁',
+    title: 'Step 5 — responses z = y + c·s₁',
     next: 'Next: check the norm bound',
-    render: (r) => `
-      <p>Each party computes its <strong>response share</strong> locally: nonce plus challenge times its secret-key share <code>s₁^i</code>. The nonce hides the secret term.</p>
-      <div class="trace-flow">
-        <div class="trace-party trace-server"><span class="trace-tag">SERVER</span><code>z^S = y^S + c·s₁^S = ${fmtPoly(r.zServer)}</code></div>
-        <div class="trace-party trace-phone"><span class="trace-tag">PHONE</span><code>z^P = y^P + c·s₁^P = ${fmtPoly(r.zPhone)}</code></div>
-      </div>
-      <div class="trace-result trace-shared"><span class="trace-tag">z = z^S + z^P</span><code>${fmtPoly(r.z)}</code></div>`,
+    narration: () =>
+      '<p>Each party computes its <strong>response share</strong> locally — nonce plus challenge times its own secret-key share s₁^i — then the two z-shares travel into the channel and are summed. The secret shares never leave their lanes.</p>',
+    chips: (r) => [
+      { lane: 'server', tone: 'server', tag: 'z^S = y^S + c·s₁^S', value: fmtPoly(r.zServer) },
+      { lane: 'phone', tone: 'phone', tag: 'z^P = y^P + c·s₁^P', value: fmtPoly(r.zPhone) },
+      { lane: 'channel', tone: 'shared', tag: 'z = z^S + z^P', value: fmtPoly(r.z), flyFrom: 'server' },
+    ],
   },
   {
-    title: 'Round · Step 6 — infinity-norm check',
+    title: 'Step 6 — infinity-norm check',
     next: 'Start a fresh round',
-    render: (r) => {
+    narration: (r) => {
       const ok = r.accepted;
-      return `
-      <p>A <strong>secure comparison</strong> checks that the largest coefficient of z stays under the bound <code>β = ${TOY_Z_BOUND}</code> — without revealing z if it fails.</p>
-      <div class="trace-result ${ok ? 'trace-accept' : 'trace-reject'}">
-        <span class="trace-tag">|z|∞ = ${r.zNorm} ${ok ? '&lt;' : '≥'} β = ${TOY_Z_BOUND}</span>
-        <code>${ok ? '✓ ACCEPT — publish z; the round succeeds' : '✕ REJECT — abort; both parties restart with fresh randomness'}</code>
-      </div>
+      return `<p>A <strong>secure comparison</strong> checks the largest coefficient of z stays under the bound <code>β = ${TOY_Z_BOUND}</code> — without revealing z if it fails.</p>
       <p class="small-note">${ok
         ? 'This round was accepted. In a real scheme z would now be published and the signature verifies with the standard verifier.'
         : 'This round was rejected. Press “Fresh randomness (restart)” to see the coordinated do-over that makes threshold ML-DSA expensive.'}</p>`;
     },
+    chips: (r) => [
+      { lane: 'channel', tone: 'shared', tag: 'z', value: fmtPoly(r.z) },
+      {
+        lane: 'channel',
+        tone: r.accepted ? 'accept' : 'reject',
+        tag: `|z|∞ = ${r.zNorm} ${r.accepted ? '<' : '≥'} β = ${TOY_Z_BOUND}`,
+        value: r.accepted ? '✓ ACCEPT — publish z' : '✕ REJECT — both restart',
+      },
+    ],
   },
 ];
 
-function renderTrace(): void {
-  const shown = TRACE_STEPS.slice(0, traceStep);
-  if (shown.length === 0) {
-    traceStage.innerHTML = '<p class="small-note trace-placeholder">Press <strong>Reveal round 1</strong> to begin. Each press advances one step of the protocol and animates the numbers moving between the SERVER and PHONE columns.</p>';
-  } else {
-    traceStage.innerHTML = shown
-      .map((step, i) => `
-        <div class="trace-card${i === shown.length - 1 ? ' trace-card-new' : ''}">
-          <div class="trace-card-title">${escapeHtml(step.title)}</div>
-          ${step.render(traceRound)}
-        </div>`)
-      .join('');
+function chipHtml(chip: Chip, isNew: boolean): string {
+  return `<div class="trace-chip trace-chip-${chip.tone}${isNew && !chip.flyFrom ? ' trace-chip-pop' : ''}" data-lane="${chip.lane}">
+      <span class="trace-tag">${escapeHtml(chip.tag)}</span>
+      <code>${escapeHtml(chip.value)}</code>
+    </div>`;
+}
+
+/**
+ * Animate a landing chip flying from a source party lane into the channel.
+ * Uses a transient clone in the fixed flight layer; the real chip is hidden
+ * until the flight lands, then revealed. Respects prefers-reduced-motion.
+ */
+function flyChipIntoChannel(from: 'server' | 'phone'): void {
+  const target = traceLaneChannel.querySelector<HTMLElement>('.trace-chip[data-fly="1"]');
+  if (!target) return;
+  const source = (from === 'server' ? traceLaneServer : traceLanePhone).querySelector<HTMLElement>('.trace-chip');
+  if (!source || prefersReducedMotion()) {
+    target.classList.remove('trace-chip-hidden');
+    return;
   }
+  const stageRect = traceStage.getBoundingClientRect();
+  const srcRect = source.getBoundingClientRect();
+  const dstRect = target.getBoundingClientRect();
+  const clone = target.cloneNode(true) as HTMLElement;
+  clone.classList.remove('trace-chip-hidden');
+  clone.classList.add('trace-flight-chip');
+  clone.style.left = `${srcRect.left - stageRect.left}px`;
+  clone.style.top = `${srcRect.top - stageRect.top}px`;
+  clone.style.width = `${dstRect.width}px`;
+  traceFlightLayer.appendChild(clone);
+  // Force layout, then translate to the destination.
+  void clone.getBoundingClientRect();
+  clone.style.transform = `translate(${dstRect.left - srcRect.left}px, ${dstRect.top - srcRect.top}px)`;
+  clone.style.opacity = '1';
+  const finish = (): void => {
+    target.classList.remove('trace-chip-hidden');
+    clone.remove();
+  };
+  clone.addEventListener('transitionend', finish, { once: true });
+  // Safety fallback if transitionend does not fire.
+  window.setTimeout(finish, 700);
+}
+
+function renderTrace(): void {
+  traceFlightLayer.innerHTML = '';
+  if (traceStep === 0) {
+    traceLaneServer.innerHTML = '';
+    traceLanePhone.innerHTML = '';
+    traceLaneChannel.innerHTML = '';
+    traceNarration.innerHTML =
+      '<p class="small-note trace-placeholder">Press <strong>Reveal round 1</strong> to begin. Each press advances one step; value chips physically travel from the SERVER and PHONE lanes into the shared channel as the arithmetic lands.</p>';
+    traceNextButton.textContent = 'Reveal round 1: sample nonces';
+    return;
+  }
+
+  const def = TRACE_STEPS[traceStep - 1];
+  const chips = def.chips(traceRound);
+
+  const buckets: Record<'server' | 'phone' | 'channel', string[]> = { server: [], phone: [], channel: [] };
+  let flyingFrom: 'server' | 'phone' | null = null;
+  for (const chip of chips) {
+    const isFly = Boolean(chip.flyFrom);
+    let html = chipHtml(chip, true);
+    if (isFly) {
+      flyingFrom = chip.flyFrom!;
+      // Mark the landing chip so the flight animation can find and reveal it.
+      html = html.replace('class="trace-chip', 'data-fly="1" class="trace-chip trace-chip-hidden');
+    }
+    buckets[chip.lane].push(html);
+  }
+  traceLaneServer.innerHTML = buckets.server.join('') || '<span class="trace-lane-empty">—</span>';
+  traceLanePhone.innerHTML = buckets.phone.join('') || '<span class="trace-lane-empty">—</span>';
+  traceLaneChannel.innerHTML = buckets.channel.join('') || '<span class="trace-lane-empty">shared values appear here</span>';
+
+  traceNarration.innerHTML = `<p class="trace-step-title">${escapeHtml(def.title)}</p>${def.narration(traceRound)}`;
+
+  if (flyingFrom) {
+    // Wait a frame so the lanes have laid out, then fly.
+    requestAnimationFrame(() => flyChipIntoChannel(flyingFrom!));
+  }
+
   if (traceStep >= TRACE_STEPS.length) {
     traceNextButton.textContent = traceRound.accepted ? 'Round accepted — start a new round' : 'Round rejected — restart with fresh randomness';
   } else {
-    traceNextButton.textContent = traceStep === 0
-      ? 'Reveal round 1: sample nonces'
-      : TRACE_STEPS[traceStep - 1].next;
+    traceNextButton.textContent = def.next;
   }
 }
 
@@ -793,17 +930,161 @@ function renderContrast(): void {
       <p class="small-note"><strong>This build (escrow):</strong> to sign, both shares are combined into the whole secret key in one place. It lights up red because at that instant a single machine holds the entire key — the exact thing a real threshold scheme must never allow. This is honest split-custody, not threshold signing.</p>`;
   } else {
     contrastView.innerHTML = `
-      <div class="contrast-row">
-        <div class="contrast-share"><span class="contrast-tag">SERVER share</span><code>${serverBytes}</code></div>
-        <span class="contrast-op" aria-hidden="true">+</span>
-        <div class="contrast-share"><span class="contrast-tag">PHONE share</span><code>${phoneBytes}</code></div>
+      <p class="small-note"><strong>Real threshold (never combine)</strong> — this is the positive picture: what threshold signing <em>should</em> look like, animated. Press play to watch each party keep its secret in its own lane while only masked z-shares cross the channel.</p>
+      <div class="button-row ideal-controls">
+        <button id="ideal-play" class="secondary-button" type="button" aria-controls="ideal-stage">▶ Play the ideal round</button>
       </div>
-      <div class="contrast-key contrast-key-crossed">
-        <span class="contrast-tag">Full secret key buffer</span>
-        <code><s>ff 04 f4 ff fb …</s> <span class="contrast-flag contrast-flag-ok">✓ NEVER MATERIALIZES</span></code>
-      </div>
-      <p class="small-note"><strong>Real threshold (never combine):</strong> the parties run an MPC protocol so each only ever computes its own share of the response z. The full key buffer on the right is <em>never</em> assembled anywhere — that is the property this build does not achieve, and the open research problem the landscape table catalogues.</p>`;
+      <div id="ideal-stage" class="ideal-stage" role="region" aria-label="Ideal threshold round animation" aria-live="polite">
+        <div class="ideal-lanes">
+          <div class="ideal-lane ideal-lane-server">
+            <span class="ideal-lane-head">SERVER (holds s₁^S only)</span>
+            <div id="ideal-server-slot" class="ideal-slot"></div>
+          </div>
+          <div class="ideal-lane ideal-lane-channel">
+            <span class="ideal-lane-head">SHARED CHANNEL (only masked z-shares cross)</span>
+            <div id="ideal-channel-slot" class="ideal-slot ideal-channel-slot"></div>
+          </div>
+          <div class="ideal-lane ideal-lane-phone">
+            <span class="ideal-lane-head">PHONE (holds s₁^P only)</span>
+            <div id="ideal-phone-slot" class="ideal-slot"></div>
+          </div>
+        </div>
+        <div id="ideal-flight-layer" class="ideal-flight-layer" aria-hidden="true"></div>
+        <div id="ideal-keybuf" class="ideal-keybuf">
+          <span class="contrast-tag">Full secret key buffer</span>
+          <code><s>ff 04 f4 ff fb …</s> <span class="contrast-flag contrast-flag-ok">✓ NEVER ASSEMBLED</span></code>
+        </div>
+        <p id="ideal-caption" class="small-note ideal-caption">Press <strong>Play the ideal round</strong>. Watch the greyed key buffer at the bottom: in this path it is never filled in — the whole point of a real threshold scheme.</p>
+      </div>`;
+    wireIdealStage();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Ideal-threshold animated sequence (the positive counterpart to escrow):
+// each party computes z^i locally, the z-shares fly across the channel, and
+// only their SUM z is published — the full key buffer is never assembled.
+// ---------------------------------------------------------------------------
+
+let idealPlaying = false;
+
+interface IdealStep {
+  caption: string;
+  render(): { server?: string; phone?: string; channel?: string; fly?: 'server' | 'phone'; keyState?: 'idle' | 'never' };
+}
+
+function idealChip(tone: string, tag: string, value: string): string {
+  return `<div class="ideal-chip ideal-chip-${tone}"><span class="contrast-tag">${escapeHtml(tag)}</span><code>${escapeHtml(value)}</code></div>`;
+}
+
+const IDEAL_STEPS: IdealStep[] = [
+  {
+    caption: 'Each party samples its own nonce share y^i locally. Secrets never leave the lane they live in.',
+    render: () => ({
+      server: idealChip('server', 'y^S (local)', '[ 4, -3, 7]'),
+      phone: idealChip('phone', 'y^P (local)', '[-2, 5, -1]'),
+      keyState: 'never',
+    }),
+  },
+  {
+    caption: 'Each party computes its response share z^i = y^i + c·s₁^i — using only its OWN secret-key share. The other party never sees s₁^i.',
+    render: () => ({
+      server: idealChip('server', 'z^S = y^S + c·s₁^S', '[ 6, -1, 8]'),
+      phone: idealChip('phone', 'z^P = y^P + c·s₁^P', '[-3, 4, 0]'),
+      keyState: 'never',
+    }),
+  },
+  {
+    caption: 'Only the masked z-shares travel across the channel. A z-share reveals nothing on its own — the nonce hides the secret term.',
+    render: () => ({
+      server: idealChip('server', 'z^S', '[ 6, -1, 8]'),
+      phone: idealChip('phone', 'z^P', '[-3, 4, 0]'),
+      channel: idealChip('shared', 'z = z^S + z^P (published)', '[ 3, 3, 8]'),
+      fly: 'server',
+      keyState: 'never',
+    }),
+  },
+  {
+    caption: 'Only the SUM z is published — and it verifies under the standard FIPS 204 verifier. The full secret key buffer below was never assembled anywhere. THAT is real threshold signing.',
+    render: () => ({
+      server: idealChip('server', 's₁^S', '(never revealed)'),
+      phone: idealChip('phone', 's₁^P', '(never revealed)'),
+      channel: idealChip('accept', 'z published ✓ verifies', '[ 3, 3, 8]'),
+      keyState: 'never',
+    }),
+  },
+];
+
+function idealSetKeyBuf(state: 'idle' | 'never'): void {
+  const buf = document.querySelector<HTMLDivElement>('#ideal-keybuf');
+  if (!buf) return;
+  buf.classList.toggle('ideal-keybuf-never', state === 'never');
+}
+
+function idealFly(from: 'server' | 'phone'): void {
+  const layer = document.querySelector<HTMLDivElement>('#ideal-flight-layer');
+  const stage = document.querySelector<HTMLDivElement>('#ideal-stage');
+  const target = document.querySelector<HTMLElement>('#ideal-channel-slot .ideal-chip');
+  const source = document.querySelector<HTMLElement>(`#ideal-${from}-slot .ideal-chip`);
+  if (!layer || !stage || !target || !source) return;
+  if (prefersReducedMotion()) return;
+  const stageRect = stage.getBoundingClientRect();
+  const srcRect = source.getBoundingClientRect();
+  const dstRect = target.getBoundingClientRect();
+  target.style.visibility = 'hidden';
+  const clone = target.cloneNode(true) as HTMLElement;
+  clone.style.visibility = 'visible';
+  clone.classList.add('ideal-flight-chip');
+  clone.style.left = `${srcRect.left - stageRect.left}px`;
+  clone.style.top = `${srcRect.top - stageRect.top}px`;
+  clone.style.width = `${dstRect.width}px`;
+  layer.appendChild(clone);
+  void clone.getBoundingClientRect();
+  clone.style.transform = `translate(${dstRect.left - srcRect.left}px, ${dstRect.top - srcRect.top}px)`;
+  const finish = (): void => {
+    target.style.visibility = 'visible';
+    clone.remove();
+  };
+  clone.addEventListener('transitionend', finish, { once: true });
+  window.setTimeout(finish, 700);
+}
+
+function renderIdealStep(i: number): void {
+  const serverSlot = document.querySelector<HTMLDivElement>('#ideal-server-slot');
+  const phoneSlot = document.querySelector<HTMLDivElement>('#ideal-phone-slot');
+  const channelSlot = document.querySelector<HTMLDivElement>('#ideal-channel-slot');
+  const caption = document.querySelector<HTMLParagraphElement>('#ideal-caption');
+  if (!serverSlot || !phoneSlot || !channelSlot || !caption) return;
+  const step = IDEAL_STEPS[i];
+  const state = step.render();
+  serverSlot.innerHTML = state.server ?? '';
+  phoneSlot.innerHTML = state.phone ?? '';
+  channelSlot.innerHTML = state.channel ?? '<span class="trace-lane-empty">masked z-shares appear here</span>';
+  caption.innerHTML = step.caption;
+  idealSetKeyBuf(state.keyState ?? 'never');
+  if (state.fly) requestAnimationFrame(() => idealFly(state.fly!));
+}
+
+async function playIdeal(): Promise<void> {
+  if (idealPlaying) return;
+  const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
+  idealPlaying = true;
+  if (playButton) playButton.disabled = true;
+  const delay = prefersReducedMotion() ? 350 : 1200;
+  for (let i = 0; i < IDEAL_STEPS.length; i += 1) {
+    renderIdealStep(i);
+    await new Promise((resolve) => window.setTimeout(resolve, delay));
+  }
+  idealPlaying = false;
+  if (playButton) {
+    playButton.disabled = false;
+    playButton.textContent = '↻ Replay the ideal round';
+  }
+}
+
+function wireIdealStage(): void {
+  const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
+  if (playButton) playButton.addEventListener('click', () => void playIdeal());
 }
 
 // ---------------------------------------------------------------------------
@@ -889,6 +1170,7 @@ contrastEscrowButton.addEventListener('click', () => {
 
 contrastIdealButton.addEventListener('click', () => {
   contrastMode = 'ideal';
+  idealPlaying = false;
   renderContrast();
 });
 
