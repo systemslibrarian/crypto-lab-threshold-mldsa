@@ -366,7 +366,7 @@ app.innerHTML = `
       </article>
     </section>
 
-    <section class="panel footer-panel">
+    <section class="panel footer-panel" aria-label="Research anchors and related demos">
       <h3>Research anchors</h3>
       <p>
         Trilithium: Dufka, Kravtsenko, Laud, Snetkov (ePrint 2025/675). Quorus: Borin et al. (ePrint 2025/1163). TOPCOAT: 2024 two-party HighBits compression. Dufka–Kravtsenko identifiable aborts: ePrint 2025/871. del Pino–Prest unmasking TRaccoon: ePrint 2025/849.
