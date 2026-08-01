@@ -34,8 +34,17 @@ import {
 } from './mldsa-primitives';
 import { reconstructVector, splitPolynomial } from './sharing';
 
+// FIPS 204 Table 1, ML-DSA-65: (k, l) = (6, 5), eta = 4, d = 13.
 const MLDSA_L = 5;
 const MLDSA_K = 6;
+/** Secret-vector coefficient bound for ML-DSA-65. ML-DSA-44 and -87 use 2; -65 uses 4. */
+const MLDSA_ETA = 4;
+/**
+ * t0 coefficients really live in (-2^12, 2^12] (d = 13). The teaching prop keeps
+ * them tiny so the shares stay readable on screen; that is a display choice, and
+ * unlike eta above it is NOT the standard's value.
+ */
+const T0_DISPLAY_BOUND = 4;
 
 export interface ThresholdPublicKey {
   rho: Uint8Array;
@@ -75,17 +84,23 @@ export interface ThresholdKeyPair {
  * shape of a lattice DKG.
  */
 export async function distributedKeyGen(
-  onRound?: (round: number, description: string, bytesExchanged: number) => void,
+  onRound?: (round: number, description: string, artifactBytes: number | null) => void,
 ): Promise<ThresholdKeyPair> {
   const rho = randomBytes(32);
   const sharedK = randomBytes(32);
   const tr = randomBytes(48);
 
-  onRound?.(1, 'Server and phone sample additive shares of the illustrative s1, s2, t0 vectors.', 3 * (MLDSA_L + MLDSA_K));
+  // `artifactBytes` is the SIZE OF THE ARTIFACT THIS STEP PRODUCED — never a
+  // "bytes exchanged over the wire" figure. This build runs no MPC, so there is
+  // no traffic to measure, and inventing one would contradict the honesty panel
+  // that promises no fabricated byte counts. `null` = no single measurable
+  // artifact. (The old code reported `3 * (MLDSA_L + MLDSA_K)` = 33 B here,
+  // which was invented: the 11 shared polynomials are ~8 KB of coefficients.)
+  onRound?.(1, 'Server and phone sample additive shares of the illustrative s1, s2, t0 vectors (local sampling, nothing sent).', null);
 
-  const s1Full = Array.from({ length: MLDSA_L }, () => randomSmallPolynomial(undefined, 2, MLDSA_Q));
-  const s2Full = Array.from({ length: MLDSA_K }, () => randomSmallPolynomial(undefined, 2, MLDSA_Q));
-  const t0Full = Array.from({ length: MLDSA_K }, () => randomSmallPolynomial(undefined, 4, MLDSA_Q));
+  const s1Full = Array.from({ length: MLDSA_L }, () => randomSmallPolynomial(undefined, MLDSA_ETA, MLDSA_Q));
+  const s2Full = Array.from({ length: MLDSA_K }, () => randomSmallPolynomial(undefined, MLDSA_ETA, MLDSA_Q));
+  const t0Full = Array.from({ length: MLDSA_K }, () => randomSmallPolynomial(undefined, T0_DISPLAY_BOUND, MLDSA_Q));
 
   const s1Shares = s1Full.map((poly) => splitPolynomial(poly, MLDSA_Q));
   const s2Shares = s2Full.map((poly) => splitPolynomial(poly, MLDSA_Q));
@@ -97,7 +112,7 @@ export async function distributedKeyGen(
 
   const secretShares = splitByteShares(realKeys.secretKey);
 
-  onRound?.(3, 'The genuine ML-DSA secret key is split into two additive byte shares (2-of-2 custody).', realKeys.secretKey.length);
+  onRound?.(3, 'The genuine ML-DSA secret key is split into two additive byte shares (2-of-2 custody); each party holds one share of this size.', secretShares.serverShare.length);
 
   return {
     publicKey: {

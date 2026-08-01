@@ -314,17 +314,33 @@ app.innerHTML = `
               </tr>
             </thead>
             <tbody>
-              <tr><td>Trilithium (2025/675)</td><td>2</td><td>UC, malicious</td><td>5–8</td><td>Yes</td></tr>
-              <tr><td>Quorus (2025/1163)</td><td>n ≤ 6+</td><td>MPC malicious</td><td>6–10</td><td>Yes</td></tr>
+              <tr><td>Trilithium (2025/675)</td><td>2 + CRP <sup>&sect;</sup></td><td>UC, malicious</td><td>14 <sup>&para;</sup></td><td>Yes</td></tr>
+              <tr><td>Quorus (2025/1163)</td><td>Any t-of-n (honest majority)</td><td>UC, malicious (abort)</td><td>16–29 online <sup>&para;</sup></td><td>Yes</td></tr>
               <tr><td>TOPCOAT (2024)</td><td>2</td><td>sim. malicious</td><td>3</td><td>No <sup>&dagger;</sup></td></tr>
               <tr><td>Hermine (2026/419)</td><td>Any t-of-n, N ≤ 64</td><td>Identifiable aborts + proactive</td><td>2 (partially non-interactive)</td><td>No <sup>&Dagger;</sup></td></tr>
-              <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based</td><td>2+</td><td>Yes</td></tr>
-              <tr><td>Threshold Raccoon</td><td>Any t-of-n</td><td>Standard lattice</td><td>2–3</td><td>No</td></tr>
+              <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based, passive</td><td>2</td><td>Yes</td></tr>
+              <tr><td>Threshold Raccoon</td><td>t-of-n, N ≤ 1024</td><td>Standard lattice</td><td>3</td><td>No</td></tr>
             </tbody>
           </table>
         </div>
         <p class="small-note">
           No threshold ML-DSA construction is NIST-standardized as of 2026. This lab models the signing-side protocol only.
+          Every figure above is taken from the cited paper. Where a paper does not state a number, the cell says so rather
+          than estimating one.
+        </p>
+        <p class="small-note">
+          <sup>&sect;</sup> Trilithium is two <em>signers</em> — a server and a phone — but its architecture also requires a
+          Correlated Randomness Provider as a third entity. The paper's own concluding remarks call it "a three-party (Phone,
+          Server, and CRP) protocol, providing security against a single malicious party." The CRP never runs an interactive
+          signing round (its traffic is one-way and precomputable), but it is not optional, and the two-party server/phone
+          framing this demo borrows omits it.
+        </p>
+        <p class="small-note">
+          <sup>&para;</sup> Round counts are per signing <em>attempt</em>, so a rejected round multiplies them. Trilithium
+          reports "3 rounds for key generation, 14 rounds for signing" (&sect;6). Quorus reports 29 online rounds
+          (communication-optimised) or 16 (round-optimised) per SIGN invocation, and expects four to five invocations per
+          signature. Earlier versions of this table gave Trilithium "5–8" and Quorus "6–10"; neither figure appears in
+          either paper.
         </p>
         <p class="small-note">
           <sup>&dagger;</sup> TOPCOAT targets the pre-standard CRYSTALS-Dilithium submission, not FIPS 204 ML-DSA, and its
@@ -546,11 +562,19 @@ async function ensureKeypair(): Promise<ThresholdKeyPair> {
   }
 
   const dkgLogs: string[] = [];
-  keypair = await distributedKeyGen((round, description, bytesExchanged) => {
-    dkgLogs.push(`Round ${round}: ${description} (${formatBytes(bytesExchanged)})`);
+  keypair = await distributedKeyGen((round, description, artifactBytes) => {
+    // Label the figure as an ARTIFACT SIZE, not wire traffic. This build runs no
+    // MPC, so it has no "bytes exchanged" to report and must not imply it does.
+    const size = artifactBytes === null ? '' : ` (artifact: ${formatBytes(artifactBytes)})`;
+    dkgLogs.push(`Step ${round}: ${description}${size}`);
   });
   renderMaskedShares(keypair);
   renderShareDemo();
+  // The escrow contrast panel shows real split-key bytes; re-render now that they
+  // exist. Skipped in `ideal` mode so a running animation is not torn down.
+  if (contrastMode === 'escrow') {
+    renderContrast();
+  }
 
   const check = await verifyKeyShares(keypair);
   protocolLog.innerHTML = dkgLogs.map((entry) => `<div class="log-row"><div>${escapeHtml(entry)}</div></div>`).join('');
@@ -583,7 +607,12 @@ async function runSigningDemo(): Promise<void> {
     if (!phoneEnabled) {
       const blocked = await singlePartyAttemptFails(message, currentKeypair, 'server');
       jointArtifactText.textContent = blocked ? 'Signing blocked: phone share missing.' : 'Unexpected single-party success.';
-      setStatus('warning', 'The phone is disabled, so the 2-of-2 protocol cannot complete.');
+      setStatus(
+        blocked ? 'warning' : 'danger',
+        blocked
+          ? 'The phone is disabled, so the 2-of-2 protocol cannot complete — the server\'s lone attempt was rejected by the standard verifier.'
+          : 'CUSTODY BROKEN: the server signed alone and the standard verifier accepted it.',
+      );
       renderStats([
         { label: 'Scenario', value: '2-of-2 custody' },
         { label: 'Signature', value: '—' },
@@ -591,11 +620,24 @@ async function runSigningDemo(): Promise<void> {
         { label: 'Verifier', value: blocked ? 'Sign blocked' : 'Unexpected' },
       ]);
       setVerdict(verdictSig, 'bad', 'Signature valid', 'No signature — phone share missing');
-      setVerdict(verdictTrust, 'good', 'Custody enforced', 'One party alone cannot sign');
+      // Derived from the measured drop-one result, never asserted. `blocked` is
+      // true only when the server's lone share actually produced a signature the
+      // standard verifier REJECTED. If a single party ever did forge, this card
+      // must go red rather than congratulate the demo on a property it lost.
+      setVerdict(
+        verdictTrust,
+        blocked ? 'good' : 'bad',
+        'Custody enforced',
+        blocked
+          ? 'PASS — server\'s lone share signed, and the standard verifier rejected it'
+          : 'FAIL — a single party produced a signature the verifier ACCEPTED',
+      );
       protocolLog.innerHTML = `
-        <div class="log-row log-reject">
-          <div class="log-top"><strong>Drop-one test</strong><span>2-of-2 enforced</span></div>
-          <div>Server alone cannot reconstruct the real ML-DSA signing key, so the protocol aborts.</div>
+        <div class="log-row ${blocked ? 'log-reject' : 'log-ok'}">
+          <div class="log-top"><strong>Drop-one test</strong><span>${blocked ? '2-of-2 enforced' : 'CUSTODY BROKEN'}</span></div>
+          <div>${blocked
+            ? 'The server signed with its own share alone (padding the phone half with zeros). The standard FIPS 204 verifier rejected the result, so one party cannot sign without the other.'
+            : 'The server signed with its own share alone and the standard verifier ACCEPTED it. That must never happen — the 2-of-2 custody property is broken in this build.'}</div>
         </div>
       `;
       return;
@@ -924,12 +966,34 @@ function resetTrace(): void {
 
 let contrastMode: 'escrow' | 'ideal' = 'escrow';
 
+/**
+ * The first five bytes of the REAL split secret key, plus their genuine sum
+ * mod 256. Returns null until distributed key generation has run, so the panel
+ * shows a placeholder rather than fabricated hex.
+ */
+function contrastKeyBytes(): { server: string; phone: string; key: string } | null {
+  if (!keypair) return null;
+  const s = keypair.serverShare.secretKeyShare.slice(0, 5);
+  const p = keypair.phoneShare.secretKeyShare.slice(0, 5);
+  const hex = (b: Uint8Array): string => Array.from(b, (v) => v.toString(16).padStart(2, '0')).join(' ');
+  const combined = Uint8Array.from(s, (v, i) => (v + p[i]) % 256);
+  return { server: hex(s), phone: hex(p), key: hex(combined) };
+}
+
 function renderContrast(): void {
   contrastEscrowButton.setAttribute('aria-pressed', String(contrastMode === 'escrow'));
   contrastIdealButton.setAttribute('aria-pressed', String(contrastMode === 'ideal'));
 
-  const serverBytes = '2f a1 7c 04 e9 …';
-  const phoneBytes = 'd1 63 88 fb 12 …';
+  // These must be the REAL split-key bytes, and the key row must be their actual
+  // sum mod 256 — this panel sits directly under the widget that teaches
+  // `server + phone (mod 256) = key byte`, so a learner can and will check the
+  // arithmetic. Hardcoded hex that does not add up is a lie the page tells about
+  // its own primitive. Before the keypair exists we show placeholders instead of
+  // inventing bytes.
+  const contrast = contrastKeyBytes();
+  const serverBytes = contrast ? `${contrast.server} …` : '— (generating key…)';
+  const phoneBytes = contrast ? `${contrast.phone} …` : '— (generating key…)';
+  const keyBytes = contrast ? `${contrast.key} …` : '—';
 
   if (contrastMode === 'escrow') {
     contrastView.innerHTML = `
@@ -940,7 +1004,7 @@ function renderContrast(): void {
       </div>
       <div class="contrast-key contrast-key-live">
         <span class="contrast-tag">Full secret key buffer</span>
-        <code>ff 04 f4 ff fb … <span class="contrast-flag">◉ MATERIALIZED IN MEMORY</span></code>
+        <code>${keyBytes} <span class="contrast-flag">◉ MATERIALIZED IN MEMORY</span></code>
       </div>
       <p class="small-note"><strong>This build (escrow):</strong> to sign, both shares are combined into the whole secret key in one place. It lights up red because at that instant a single machine holds the entire key — the exact thing a real threshold scheme must never allow. This is honest split-custody, not threshold signing.</p>`;
   } else {
