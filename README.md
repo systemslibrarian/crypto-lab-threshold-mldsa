@@ -10,13 +10,13 @@ This repository demonstrates the central threshold-signing question for post-qua
 
 The demo explores those questions with an educational two-party **split-custody** simulation (the genuine ML-DSA key is additively shared, then combined to sign) based on the current research direction. It illustrates the protocol *shape* honestly — it does not implement a real threshold scheme (see "What's Real and What's Simulated" below):
 
-- **Trilithium** — Dufka, Kravtsenko, Laud, Snetkov, ePrint 2025/675
-- **Quorus** — Borin et al., ePrint 2025/1163
-- **TOPCOAT** — 2024 two-party HighBits compression approach
-- **Dufka–Kravtsenko identifiable aborts** — ePrint 2025/871
-- **del Pino–Prest unmasking TRaccoon** — ePrint 2025/849
-- **THED** — ePrint 2026/638
-- **Threshold Raccoon** — Saarinen, EUROCRYPT 2024
+- **Trilithium** — Dufka, Kravtšenko, Laud, Snetkov, ePrint 2025/675
+- **Quorus** — Bienstock, de Castro, Escudero, Polychroniadou, Takahashi, ePrint 2025/1163
+- **TOPCOAT** — Snetkov, Vakarjuk, Laud, 2024 two-party HighBits compression approach
+- **Lattice threshold signatures with identifiable aborts** — del Pino, Espitau, Niot, Prest, ePrint 2025/871
+- **Unmasking TRaccoon** — del Pino, Katsumata, Niot, Reichle, Takemure, ePrint 2025/849
+- **THED** — Park, Passelègue, Stehlé, ePrint 2026/638
+- **Threshold Raccoon** — del Pino, Katsumata, Maller, Mouhartem, Prest, Saarinen, EUROCRYPT 2024
 
 A guided **"Start here — a 5-stop path"** strip sits at the top so a newcomer follows one intuition-building route (additive sharing → why it's hard → walk a round → watch the ideal → sign live) instead of landing on the dense research table first. The live UI includes five exhibits, plus three hands-on teaching widgets layered on top of the honesty framing:
 

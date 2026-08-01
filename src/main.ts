@@ -317,7 +317,7 @@ app.innerHTML = `
               <tr><td>Trilithium (2025/675)</td><td>2</td><td>UC, malicious</td><td>5–8</td><td>Yes</td></tr>
               <tr><td>Quorus (2025/1163)</td><td>n ≤ 6+</td><td>MPC malicious</td><td>6–10</td><td>Yes</td></tr>
               <tr><td>TOPCOAT (2024)</td><td>2</td><td>sim. malicious</td><td>3</td><td>Yes</td></tr>
-              <tr><td>Dufka–Kravtsenko (2025/871)</td><td>up to 6</td><td>Identifiable aborts</td><td>Varies</td><td>Yes</td></tr>
+              <tr><td>del Pino et al. (2025/871)</td><td>up to 6</td><td>Identifiable aborts</td><td>Varies</td><td>Yes</td></tr>
               <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based</td><td>2+</td><td>Yes</td></tr>
               <tr><td>Threshold Raccoon</td><td>Any t-of-n</td><td>Standard lattice</td><td>2–3</td><td>No</td></tr>
             </tbody>
@@ -369,7 +369,7 @@ app.innerHTML = `
     <section class="panel footer-panel" aria-label="Research anchors and related demos">
       <h3>Research anchors</h3>
       <p>
-        Trilithium: Dufka, Kravtsenko, Laud, Snetkov (ePrint 2025/675). Quorus: Borin et al. (ePrint 2025/1163). TOPCOAT: 2024 two-party HighBits compression. Dufka–Kravtsenko identifiable aborts: ePrint 2025/871. del Pino–Prest unmasking TRaccoon: ePrint 2025/849.
+        Trilithium: Dufka, Kravtšenko, Laud, Snetkov (ePrint 2025/675). Quorus: Bienstock, de Castro, Escudero, Polychroniadou, Takahashi (ePrint 2025/1163). TOPCOAT: Snetkov, Vakarjuk, Laud — 2024 two-party HighBits compression. Lattice threshold signatures with identifiable aborts: del Pino, Espitau, Niot, Prest (ePrint 2025/871). Unmasking TRaccoon: del Pino, Katsumata, Niot, Reichle, Takemure (ePrint 2025/849).
       </p>
       <p class="related-demos">
         Related demos:
