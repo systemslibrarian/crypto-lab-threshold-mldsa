@@ -12,8 +12,8 @@ The demo explores those questions with an educational two-party **split-custody*
 
 - **Trilithium** — Dufka, Kravtšenko, Laud, Snetkov, ePrint 2025/675
 - **Quorus** — Bienstock, de Castro, Escudero, Polychroniadou, Takahashi, ePrint 2025/1163
-- **TOPCOAT** — Snetkov, Vakarjuk, Laud, 2024 two-party HighBits compression approach
-- **Lattice threshold signatures with identifiable aborts** — del Pino, Espitau, Niot, Prest, ePrint 2025/871
+- **TOPCOAT** — Snetkov, Vakarjuk, Laud, 2024 two-party HighBits compression approach, targeting pre-standard CRYSTALS-Dilithium rather than FIPS 204 ML-DSA ([Discover Computing 27(1):18](https://doi.org/10.1007/s10791-024-09449-2))
+- **Hermine: An Efficient Lattice-based FROST-like Threshold Signature** — Borin, Celi, del Pino, Espitau, Katsumata, Niot, Prest, Takemure, [ePrint 2026/419](https://eprint.iacr.org/2026/419) — supersedes the withdrawn ePrint 2025/871, extending it to two rounds with proactive refresh
 - **Unmasking TRaccoon** — del Pino, Katsumata, Niot, Reichle, Takemure, ePrint 2025/849
 - **THED** — Park, Passelègue, Stehlé, ePrint 2026/638
 - **Threshold Raccoon** — del Pino, Katsumata, Maller, Mouhartem, Prest, Saarinen, EUROCRYPT 2024
@@ -23,7 +23,7 @@ A guided **"Start here — a 5-stop path"** strip sits at the top so a newcomer 
 1. Why threshold ML-DSA is harder than classical threshold signatures — with an interactive **"why aborts make it expensive"** micro-demo that runs rounds until one is accepted and counts the coordinated restarts.
 2. An **animated step-by-step protocol walkthrough** with fixed SERVER / SHARED CHANNEL / PHONE lanes: as you advance a round, value chips physically travel from the party lanes into the channel — nonce shares into `w`, then `w₁` high bits, the Fiat–Shamir challenge `c`, and the z-shares summing into `z` — with a live infinity-norm accept/reject check. The tiny numbers are computed with genuine toy modular / additive-sharing math (illustrative choreography, real arithmetic), and an on-screen honest caveat notes the two abstractions (`w = y^S + y^P` not `A·y`; challenge applied as a single scalar). Includes an inline glossary of the lattice jargon.
 3. Interactive two-party (split-custody) signing, with each step labelled real or illustrative, and **two separate result indicators** — *Signature valid* (green) vs *Distributed-trust enforced* (red) — plus a plain-language bridging sentence spelling out that both cards describe the **same run** (custody achieved, key-non-reconstruction not).
-4. A comparison table of the 2024–2026 threshold ML-DSA research landscape, with a glossary for the security column (UC, malicious, identifiable aborts, FHE-based, std compat).
+4. A comparison table of the 2024–2026 threshold ML-DSA research landscape, with a glossary for the security column (UC, malicious, identifiable aborts, FHE-based, proactive security, std compat) and footnotes recording where a scheme does *not* verify under an unmodified FIPS 204 verifier.
 5. Real-world applications for post-quantum multi-party signing.
 
 Two additional interactive panels make the honesty concrete: a **live additive-share combiner** (click to sum one real key byte's two shares mod 256) and an **escrow-vs-ideal contrast experiment**. The escrow view shows the full-key buffer light up red when combined; the ideal view is a **playable animated sequence** of what real threshold signing *would* look like — each party computes its own `z^i = y^i + c·s₁^i` locally, only the masked z-shares cross the channel, and only their sum `z` is published while the full secret-key buffer stays greyed out and is never assembled. It fills the "what it IS" gap next to the "what it is NOT" contrast.

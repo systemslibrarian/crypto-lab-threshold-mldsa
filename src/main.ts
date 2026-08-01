@@ -316,8 +316,8 @@ app.innerHTML = `
             <tbody>
               <tr><td>Trilithium (2025/675)</td><td>2</td><td>UC, malicious</td><td>5–8</td><td>Yes</td></tr>
               <tr><td>Quorus (2025/1163)</td><td>n ≤ 6+</td><td>MPC malicious</td><td>6–10</td><td>Yes</td></tr>
-              <tr><td>TOPCOAT (2024)</td><td>2</td><td>sim. malicious</td><td>3</td><td>Yes</td></tr>
-              <tr><td>del Pino et al. (2025/871)</td><td>up to 6</td><td>Identifiable aborts</td><td>Varies</td><td>Yes</td></tr>
+              <tr><td>TOPCOAT (2024)</td><td>2</td><td>sim. malicious</td><td>3</td><td>No <sup>&dagger;</sup></td></tr>
+              <tr><td>Hermine (2026/419)</td><td>Any t-of-n, N ≤ 64</td><td>Identifiable aborts + proactive</td><td>2 (partially non-interactive)</td><td>No <sup>&Dagger;</sup></td></tr>
               <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based</td><td>2+</td><td>Yes</td></tr>
               <tr><td>Threshold Raccoon</td><td>Any t-of-n</td><td>Standard lattice</td><td>2–3</td><td>No</td></tr>
             </tbody>
@@ -325,6 +325,19 @@ app.innerHTML = `
         </div>
         <p class="small-note">
           No threshold ML-DSA construction is NIST-standardized as of 2026. This lab models the signing-side protocol only.
+        </p>
+        <p class="small-note">
+          <sup>&dagger;</sup> TOPCOAT targets the pre-standard CRYSTALS-Dilithium submission, not FIPS 204 ML-DSA, and its
+          paper states that "the verification algorithm in our scheme is different from the original Dilithium verification
+          because we introduce additional components to the signature" — an extra hint component. Its ≈10 KB signatures are
+          therefore not accepted by an unmodified FIPS 204 verifier; the paper makes no FIPS 204 compatibility claim.
+          (Snetkov, Vakarjuk, Laud, <em>Discover Computing</em> 27(1):18, 2024, doi:10.1007/s10791-024-09449-2.)
+        </p>
+        <p class="small-note">
+          <sup>&Dagger;</sup> Hermine outputs an ≈11 KB Raccoon signature, not an ML-DSA one, so it needs its own verifier.
+          It supersedes the withdrawn ePrint 2025/871 ("Simple and Efficient Lattice Threshold Signatures with Identifiable
+          Aborts"), which it extends to the two-round setting with proactive refresh, so older summaries giving that line a
+          variable round count are stale.
         </p>
         <details class="glossary">
           <summary>Glossary — reading the security column</summary>
@@ -341,8 +354,10 @@ app.innerHTML = `
             <dd>If the protocol fails, it can name <em>which</em> party misbehaved — so a cheater can be removed rather than just stalling everyone.</dd>
             <dt>FHE-based</dt>
             <dd>Uses Fully Homomorphic Encryption to compute on encrypted shares. Very flexible (any t-of-n) but currently expensive.</dd>
+            <dt>Proactive security / refresh</dt>
+            <dd>Key shares are periodically re-randomised, so an attacker must break into enough parties within a single epoch rather than accumulating shares over time.</dd>
             <dt>Std compat (standard-compatible)</dt>
-            <dd>"Yes" means the output is a normal FIPS 204 signature the unmodified verifier accepts — no special verifier needed.</dd>
+            <dd>"Yes" means the output is a normal FIPS 204 signature the unmodified verifier accepts — no special verifier needed. "No" means the scheme either targets a different base signature or changes the verification algorithm, so relying parties would need new verifier code.</dd>
           </dl>
         </details>
       </article>
@@ -369,7 +384,7 @@ app.innerHTML = `
     <section class="panel footer-panel" aria-label="Research anchors and related demos">
       <h3>Research anchors</h3>
       <p>
-        Trilithium: Dufka, Kravtšenko, Laud, Snetkov (ePrint 2025/675). Quorus: Bienstock, de Castro, Escudero, Polychroniadou, Takahashi (ePrint 2025/1163). TOPCOAT: Snetkov, Vakarjuk, Laud — 2024 two-party HighBits compression. Lattice threshold signatures with identifiable aborts: del Pino, Espitau, Niot, Prest (ePrint 2025/871). Unmasking TRaccoon: del Pino, Katsumata, Niot, Reichle, Takemure (ePrint 2025/849).
+        Trilithium: Dufka, Kravtšenko, Laud, Snetkov (ePrint 2025/675). Quorus: Bienstock, de Castro, Escudero, Polychroniadou, Takahashi (ePrint 2025/1163). TOPCOAT: Snetkov, Vakarjuk, Laud — 2024 two-party HighBits compression over pre-standard CRYSTALS-Dilithium (Discover Computing 27(1):18). Hermine: an efficient lattice-based FROST-like threshold signature — Borin, Celi, del Pino, Espitau, Katsumata, Niot, Prest, Takemure (ePrint 2026/419), superseding the withdrawn ePrint 2025/871. Unmasking TRaccoon: del Pino, Katsumata, Niot, Reichle, Takemure (ePrint 2025/849).
       </p>
       <p class="related-demos">
         Related demos:
