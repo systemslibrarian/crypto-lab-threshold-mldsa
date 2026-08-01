@@ -6,6 +6,15 @@
   --text: #e7ecf7;
   --muted: #aeb9cf;
   --border: rgba(255, 255, 255, 0.1);
+  /* Control boundaries only (WCAG 2.1 SC 1.4.11). The message textarea is filled
+     with --inset (rgba(9,12,22,0.35)), which composites to within 1.2:1 of the
+     .panel it sits in, so its border is the only thing delineating the field.
+     --border composites to #292e3c there — 1.28:1 at best. #647089 keeps the same
+     blue-slate hue and clears 3:1 against every stop of the panel gradient:
+     3.30:1 on --panel-2 (#171f33, the worst stop), 3.59:1 on --panel (#111726),
+     3.92:1 on --bg (#090c16). --border is left unchanged for decorative rules —
+     panel outlines, stat cards, dividers, table rules. */
+  --border-strong: #647089;
   --server: #00d4ff;
   --phone: #ff00aa;
   --shared: #ffd700;
@@ -37,6 +46,11 @@
   --text: #101828;
   --muted: #475467;
   --border: rgba(16, 24, 40, 0.12);
+  /* Light-theme control boundary (WCAG 2.1 SC 1.4.11). --border composites to
+     #e2e3e5 on white — 1.28:1. #7d8493 is the same near-neutral blue, darkened:
+     3.37:1 on --panel-2 (#eef3fb, the worst stop of the panel gradient),
+     3.75:1 on --panel (#ffffff), 3.49:1 on --bg (#f4f7fb). */
+  --border-strong: #7d8493;
   --shadow: 0 18px 40px rgba(17, 24, 39, 0.08);
   /* Darkened ink so accent text clears WCAG AA (>=4.5:1) on light surfaces. */
   --gold-ink: #7a5d00;
@@ -507,7 +521,8 @@ code {
 textarea {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid var(--border);
+  /* Load-bearing control boundary — see --border-strong (WCAG 2.1 SC 1.4.11). */
+  border: 1px solid var(--border-strong);
   padding: 12px;
   background: var(--inset);
   color: var(--text);
