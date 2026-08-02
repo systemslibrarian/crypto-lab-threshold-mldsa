@@ -1499,3 +1499,37 @@ td {
   border-top: 1px solid var(--border);
   color: var(--muted);
 }
+
+/* ============ Never-combine toy protocol: verdict, trace, scale note ======== */
+.ideal-chip-reject {
+  background: rgba(255, 77, 109, 0.14);
+  border-color: rgba(255, 77, 109, 0.45);
+}
+
+.toy-scale-note {
+  border-left: 3px solid var(--gold-ink);
+  background: rgba(255, 215, 0, 0.07);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.ideal-verdict {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ideal-attempts {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.ideal-attempts:empty {
+  display: none;
+}
+
+.ideal-controls {
+  flex-wrap: wrap;
+}

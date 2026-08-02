@@ -10,12 +10,26 @@ import {
   type WalkthroughStep,
 } from './threshold-sign';
 import {
-  TOY_Q,
-  TOY_Z_BOUND,
+  TOY_Q as TRACE_Q,
+  TOY_Z_BOUND as TRACE_Z_BOUND,
   computeRound,
   computeUntilAccepted,
   type RoundTrace,
 } from './trace';
+import {
+  TOY_ETA,
+  TOY_GAMMA1,
+  TOY_K,
+  TOY_N,
+  TOY_PER_PARTY_BOUND,
+  TOY_Q,
+  TOY_TAU,
+  toyDkg,
+  toyThresholdSign,
+  type ToySetup,
+  type ToySignOutcome,
+  type ToyTamper,
+} from './toy-threshold';
 
 type StatusTone = 'idle' | 'working' | 'success' | 'warning' | 'danger';
 
@@ -50,7 +64,7 @@ app.innerHTML = `
         <li><a href="#stop-sharing"><span class="guided-num">1</span> Hold the one real idea: additive sharing</a></li>
         <li><a href="#stop-hard"><span class="guided-num">2</span> See why it's hard: aborts &amp; restarts</a></li>
         <li><a href="#stop-walk"><span class="guided-num">3</span> Walk one round, value by value</a></li>
-        <li><a href="#stop-ideal"><span class="guided-num">4</span> Watch the ideal: never combine the key</a></li>
+        <li><a href="#stop-ideal"><span class="guided-num">4</span> Run the ideal: never combine the key</a></li>
         <li><a href="#stop-live"><span class="guided-num">5</span> Sign live — and read both verdicts</a></li>
       </ol>
       <p class="small-note guided-path-note">New here? Follow 1→5 in order. Each stop builds the intuition for the next; the research table and benchmark are optional depth once you've walked the path.</p>
@@ -137,25 +151,38 @@ app.innerHTML = `
         <div class="reality-card reality-sim">
           <div class="reality-tag">Simulated — for teaching</div>
           <ul>
-            <li>The round-by-round nonce, w₁, challenge, and z exchanges are <strong>choreography</strong>: they illustrate protocol shape but do not produce the signature. Each step is labelled real or illustrative.</li>
-            <li>The "secure norm check" is described, not executed — this build runs no real MPC and reports no fabricated "bytes exchanged" traffic.</li>
-            <li><strong>To actually sign, the demo combines the two additive byte shares into the full secret key in one place</strong> — so it does <em>not</em> achieve real key-non-reconstruction. A production threshold scheme never does this.</li>
+            <li>In the <strong>ML-DSA-65</strong> path, the round-by-round nonce, w₁, challenge, and z exchanges are <strong>choreography</strong>: they illustrate protocol shape but do not produce the signature. Each step is labelled real or illustrative.</li>
+            <li>That path reports no "bytes exchanged" figure, because it runs no MPC and inventing traffic would be a fabricated measurement.</li>
+            <li><strong>To emit a standard FIPS 204 signature, the demo combines the two additive byte shares into the full secret key in one place</strong> — so that path does <em>not</em> achieve key-non-reconstruction. A production threshold scheme never does this.</li>
+          </ul>
+        </div>
+        <div class="reality-card reality-real">
+          <div class="reality-tag">Real — but at toy parameters</div>
+          <ul>
+            <li>The <strong>never-combine</strong> path below is a genuine executed two-party protocol on a small module lattice: real nonces, real commitments, a real SHAKE256 Fiat–Shamir challenge, real per-party rejection sampling with real aborts, and a verifier written here that really recomputes A·z − c·t.</li>
+            <li>The full secret <code>s = s^S + s^P</code> is never assembled in it — each share lives in a closure neither the other party nor the page can read.</li>
+            <li>Its parameters (n = 64, k = l = 2) carry <strong>no security</strong>, and its signatures are <strong>not FIPS 204</strong> — no standard verifier accepts them. Real parameters with key-non-reconstruction is the open research problem; this lab shows you each half separately rather than pretending to have both.</li>
           </ul>
         </div>
       </div>
       <p class="small-note">
-        In short: the ML-DSA math is real and the output is a valid FIPS 204 signature; the
-        <em>distributed-trust</em> property is illustrated, not enforced. Building the real thing is
-        the open research problem this lab is about — see the landscape table below.
+        In short: in the ML-DSA-65 path the math is real and the output is a valid FIPS 204
+        signature, but the <em>distributed-trust</em> property is illustrated rather than enforced.
+        In the toy path the distributed-trust property is genuinely enforced and executed, but the
+        parameters are too small to secure anything and the signature needs its own verifier.
+        Getting both at once is the open research problem this lab is about — see the landscape
+        table below.
       </p>
 
       <div id="stop-ideal" class="contrast-experiment">
         <p class="stop-badge"><span class="stop-badge-num">4</span> The ideal path</p>
-        <h4 id="contrast-heading">Feel the difference: escrow vs. a real threshold scheme</h4>
+        <h4 id="contrast-heading">Feel the difference: escrow vs. a real threshold scheme you can run</h4>
         <p class="small-note">
-          Both paths start from the same two byte shares. Watch what happens to the full secret key
-          buffer. Toggle to compare — then press <strong>Play the ideal round</strong> to watch the
-          never-combine path animate end to end.
+          Two different trades, side by side. <strong>This build</strong> keeps real ML-DSA-65
+          parameters and a standard-verifiable signature, and pays for it by combining the key.
+          <strong>Real threshold</strong> keeps the key split — genuinely, in code you can read —
+          and pays for it with toy parameters and its own verifier. Toggle to compare, then run the
+          never-combine protocol for real and try to break it.
         </p>
         <div class="button-row" role="group" aria-labelledby="contrast-heading">
           <button id="contrast-escrow" class="secondary-button" type="button" aria-pressed="true" aria-controls="contrast-view">This build: combine then sign (escrow)</button>
@@ -208,7 +235,7 @@ app.innerHTML = `
         <p class="small-note">
           <strong>Illustrative choreography</strong> — this shows the <em>shape</em> of a real two-party
           lattice signing round. The tiny numbers below are computed live with genuine modular /
-          additive-sharing math on toy 3-coefficient polynomials (mod ${TOY_Q}), so you can watch the
+          additive-sharing math on toy 3-coefficient polynomials (mod ${TRACE_Q}), so you can watch the
           actual values flow between the two parties. It does <em>not</em> produce the signature the live
           demo emits — that still comes from the honest combine-then-sign path. Simplified numbers, real math.
         </p>
@@ -839,7 +866,7 @@ const TRACE_STEPS: TraceStepDef[] = [
     next: 'Start a fresh round',
     narration: (r) => {
       const ok = r.accepted;
-      return `<p>A <strong>secure comparison</strong> checks the largest coefficient of z stays under the bound <code>β = ${TOY_Z_BOUND}</code> — without revealing z if it fails.</p>
+      return `<p>A <strong>secure comparison</strong> checks the largest coefficient of z stays under the bound <code>β = ${TRACE_Z_BOUND}</code> — without revealing z if it fails.</p>
       <p class="small-note">${ok
         ? 'This round was accepted. In a real scheme z would now be published and the signature verifies with the standard verifier.'
         : 'This round was rejected. Press “Fresh randomness (restart)” to see the coordinated do-over that makes threshold ML-DSA expensive.'}</p>`;
@@ -849,7 +876,7 @@ const TRACE_STEPS: TraceStepDef[] = [
       {
         lane: 'channel',
         tone: r.accepted ? 'accept' : 'reject',
-        tag: `|z|∞ = ${r.zNorm} ${r.accepted ? '<' : '≥'} β = ${TOY_Z_BOUND}`,
+        tag: `|z|∞ = ${r.zNorm} ${r.accepted ? '<' : '≥'} β = ${TRACE_Z_BOUND}`,
         value: r.accepted ? '✓ ACCEPT — publish z' : '✕ REJECT — both restart',
       },
     ],
@@ -1009,11 +1036,24 @@ function renderContrast(): void {
       <p class="small-note"><strong>This build (escrow):</strong> to sign, both shares are combined into the whole secret key in one place. It lights up red because at that instant a single machine holds the entire key — the exact thing a real threshold scheme must never allow. This is honest split-custody, not threshold signing.</p>`;
   } else {
     contrastView.innerHTML = `
-      <p class="small-note"><strong>Real threshold (never combine)</strong> — this is the positive picture: what threshold signing <em>should</em> look like, animated. Press play to watch each party keep its secret in its own lane while only masked z-shares cross the channel.</p>
-      <div class="button-row ideal-controls">
-        <button id="ideal-play" class="secondary-button" type="button" aria-controls="ideal-stage">▶ Play the ideal round</button>
+      <p class="small-note"><strong>Real threshold (never combine)</strong> — and it is <strong>executed here, not animated from a script</strong>. Pressing run performs a genuine two-party lattice signing round: each party samples its own nonce, computes its response from its own secret share, rejection-samples, and a verifier written for this scheme checks the result. Every value shown below comes out of that run.</p>
+      <p class="small-note toy-scale-note" role="note">
+        <strong>Toy parameters, stated plainly.</strong> This side-scheme is
+        <code>n = ${TOY_N}</code>, <code>q = ${TOY_Q}</code>, <code>k = l = ${TOY_K}</code>,
+        <code>η = ${TOY_ETA}</code>, <code>τ = ${TOY_TAU}</code>, <code>γ₁ = ${TOY_GAMMA1}</code>
+        — a module-SIS Fiat–Shamir-with-aborts signature at dimensions that carry
+        <strong>no security</strong> and are <strong>not FIPS 204</strong>. It has its own verifier;
+        no standard ML-DSA verifier accepts its output. What is real is the protocol: the full
+        secret <code>s = s^S + s^P</code> is never assembled by anyone, in any step, and the
+        rejection sampling and norm checks genuinely run. The headline ML-DSA-65 exhibit is the
+        opposite trade — real parameters and a standard signature, but the key gets combined.
+      </p>
+      <div class="button-row ideal-controls" role="group" aria-label="Run the never-combine protocol">
+        <button id="ideal-play" class="primary-button" type="button" aria-controls="ideal-stage ideal-verdict">▶ Run the never-combine round</button>
+        <button id="ideal-tamper-norm" class="secondary-button" type="button" aria-controls="ideal-stage ideal-verdict">Corrupt the phone's z-share (over the bound)</button>
+        <button id="ideal-tamper-nudge" class="secondary-button" type="button" aria-controls="ideal-stage ideal-verdict">Corrupt it by one unit</button>
       </div>
-      <div id="ideal-stage" class="ideal-stage" role="region" aria-label="Ideal threshold round animation" aria-live="polite">
+      <div id="ideal-stage" class="ideal-stage" role="region" aria-label="Never-combine threshold round" aria-live="polite">
         <div class="ideal-lanes">
           <div class="ideal-lane ideal-lane-server">
             <span class="ideal-lane-head">SERVER (holds s₁^S only)</span>
@@ -1033,8 +1073,12 @@ function renderContrast(): void {
           <span class="contrast-tag">Full secret key buffer</span>
           <code><s>ff 04 f4 ff fb …</s> <span class="contrast-flag contrast-flag-ok">✓ NEVER ASSEMBLED</span></code>
         </div>
-        <p id="ideal-caption" class="small-note ideal-caption">Press <strong>Play the ideal round</strong>. Watch the greyed key buffer at the bottom: in this path it is never filled in — the whole point of a real threshold scheme.</p>
-      </div>`;
+        <p id="ideal-caption" class="small-note ideal-caption">Press <strong>Run the never-combine round</strong>. Watch the greyed key buffer at the bottom: in this path it is never filled in — the whole point of a real threshold scheme.</p>
+      </div>
+      <div id="ideal-verdict" class="ideal-verdict" role="status" aria-live="polite">
+        <p class="small-note">No round has been run yet, so no verdict is claimed.</p>
+      </div>
+      <div id="ideal-attempts" class="ideal-attempts"></div>`;
     wireIdealStage();
   }
 }
@@ -1046,53 +1090,135 @@ function renderContrast(): void {
 // ---------------------------------------------------------------------------
 
 let idealPlaying = false;
+/** The toy setup is created once and reused, so the same public key persists. */
+let toySetup: ToySetup | null = null;
+/** The most recent executed outcome — every rendered value is read from it. */
+let toyOutcome: ToySignOutcome | null = null;
 
 interface IdealStep {
   caption: string;
-  render(): { server?: string; phone?: string; channel?: string; fly?: 'server' | 'phone'; keyState?: 'idle' | 'never' };
+  server?: string;
+  phone?: string;
+  channel?: string;
+  fly?: 'server' | 'phone';
 }
 
 function idealChip(tone: string, tag: string, value: string): string {
   return `<div class="ideal-chip ideal-chip-${tone}"><span class="contrast-tag">${escapeHtml(tag)}</span><code>${escapeHtml(value)}</code></div>`;
 }
 
-const IDEAL_STEPS: IdealStep[] = [
-  {
-    caption: 'Each party samples its own nonce share y^i locally. Secrets never leave the lane they live in.',
-    render: () => ({
-      server: idealChip('server', 'y^S (local)', '[ 4, -3, 7]'),
-      phone: idealChip('phone', 'y^P (local)', '[-2, 5, -1]'),
-      keyState: 'never',
-    }),
-  },
-  {
-    caption: 'Each party computes its response share z^i = y^i + c·s₁^i — using only its OWN secret-key share. The other party never sees s₁^i.',
-    render: () => ({
-      server: idealChip('server', 'z^S = y^S + c·s₁^S', '[ 6, -1, 8]'),
-      phone: idealChip('phone', 'z^P = y^P + c·s₁^P', '[-3, 4, 0]'),
-      keyState: 'never',
-    }),
-  },
-  {
-    caption: 'Only the masked z-shares travel across the channel. A z-share reveals nothing on its own — the nonce hides the secret term.',
-    render: () => ({
-      server: idealChip('server', 'z^S', '[ 6, -1, 8]'),
-      phone: idealChip('phone', 'z^P', '[-3, 4, 0]'),
-      channel: idealChip('shared', 'z = z^S + z^P (published)', '[ 3, 3, 8]'),
+const fmtCoeffs = (values: number[]): string => `[${values.join(', ')}, …]`;
+
+/**
+ * Build the walkthrough from a REAL outcome. There are no literals here: every
+ * coefficient and every norm was produced by the run being narrated, and the
+ * shape of the walkthrough itself changes with what the run did.
+ */
+function idealSteps(outcome: ToySignOutcome): IdealStep[] {
+  const last = outcome.attempts[outcome.attempts.length - 1];
+  const restartLine =
+    outcome.restarts === 0
+      ? 'The first attempt cleared both norm checks.'
+      : `${outcome.restarts} attempt${outcome.restarts === 1 ? '' : 's'} were thrown away first — every rejection is a coordinated restart.`;
+
+  const opening: IdealStep = {
+    caption:
+      `Each party sampled its own nonce y^i and published only the commitment w^i = A·y^i. ` +
+      `The challenge c = SampleInBall(SHAKE256(message ‖ w)) was then derived by both from the ` +
+      `same public value. ${restartLine}`,
+    server: idealChip('server', 's^S, y^S (local)', 'never sent'),
+    phone: idealChip('phone', 's^P, y^P (local)', 'never sent'),
+    channel: idealChip('shared', 'c (τ = ' + TOY_TAU + ' non-zero coefficients)', 'derived from w'),
+  };
+
+  if (outcome.status === 'rejected-by-norm-check') {
+    return [
+      opening,
+      {
+        caption:
+          `Both parties passed their OWN norm check this round (server ‖z^S‖∞ = ${last.serverNorm}, ` +
+          `phone ‖z^P‖∞ = ${last.phoneNorm}, bound ${last.bound}). Then the phone's share was ` +
+          `corrupted on its way across the channel.`,
+        server: idealChip('server', 'z^S — own check', `‖z^S‖∞ = ${last.serverNorm} < ${last.bound} ✓`),
+        phone: idealChip('reject', 'z^P — CORRUPTED', outcome.tamperDetail ?? 'tampered'),
+      },
+      {
+        caption:
+          `The receiving party re-measured the incoming share and it was over the bound, so the ` +
+          `protocol refused to combine. No signature exists to verify — the failure happened before ` +
+          `anything was published.`,
+        server: idealChip('server', 'z^S', 'held, not combined'),
+        phone: idealChip('reject', 'z^P', `‖z^P‖∞ = ${outcome.rejectedNorm} ≥ ${last.bound}`),
+        channel: idealChip('reject', 'NORM CHECK REJECTED', 'nothing published'),
+      },
+    ];
+  }
+
+  if (outcome.status === 'out-of-attempts' || !outcome.sample || !outcome.verification) {
+    return [
+      opening,
+      {
+        caption:
+          `Rejection sampling never converged inside the ${outcome.attempts.length}-attempt budget, ` +
+          `so no signature was produced. Nothing is claimed about the scheme from this run.`,
+        channel: idealChip('reject', 'OUT OF ATTEMPTS', 'no signature'),
+      },
+    ];
+  }
+
+  const { sample, verification } = outcome;
+  const support = sample.challengeSupport
+    .map((entry) => `${entry.value > 0 ? '+' : '−'}1·X^${entry.index}`)
+    .join(' ');
+
+  const verdictChip = verification.accepted
+    ? idealChip('accept', 'VERIFIER ACCEPTS', `‖z‖∞ = ${verification.zNorm} < ${verification.zBound}, challenge matches`)
+    : idealChip(
+        'reject',
+        'VERIFIER REJECTS',
+        verification.failedCheck === 'norm'
+          ? `‖z‖∞ = ${verification.zNorm} ≥ ${verification.zBound}`
+          : `challenge mismatch: A·z − c·t does not re-derive c`,
+      );
+
+  return [
+    { ...opening, channel: idealChip('shared', `c = ${support} …`, 'both parties derived it') },
+    {
+      caption:
+        `Each party computed z^i = y^i + c·s^i from its OWN secret share and checked its own ` +
+        `∞-norm against ${last.bound}. Server measured ${last.serverNorm}, phone measured ` +
+        `${last.phoneNorm}. Neither share of s left its lane.` +
+        (outcome.tamperDetail ? ` Then you corrupted the phone's share: ${outcome.tamperDetail}` : ''),
+      server: idealChip('server', 'z^S (first coefficients)', fmtCoeffs(sample.serverZ)),
+      phone: idealChip(
+        outcome.tamper === 'none' ? 'phone' : 'reject',
+        outcome.tamper === 'none' ? 'z^P (first coefficients)' : 'z^P — CORRUPTED',
+        fmtCoeffs(sample.phoneZ),
+      ),
+    },
+    {
+      caption:
+        'Only the masked z-shares crossed the channel, and only their sum was published. ' +
+        'A z-share on its own reveals nothing — that is what the rejection sampling buys.',
+      server: idealChip('server', 'z^S', fmtCoeffs(sample.serverZ)),
+      phone: idealChip(outcome.tamper === 'none' ? 'phone' : 'reject', 'z^P', fmtCoeffs(sample.phoneZ)),
+      channel: idealChip('shared', 'z = z^S + z^P (published)', fmtCoeffs(sample.combinedZ)),
       fly: 'server',
-      keyState: 'never',
-    }),
-  },
-  {
-    caption: 'Only the SUM z is published — and it verifies under the standard FIPS 204 verifier. The full secret key buffer below was never assembled anywhere. THAT is real threshold signing.',
-    render: () => ({
-      server: idealChip('server', 's₁^S', '(never revealed)'),
-      phone: idealChip('phone', 's₁^P', '(never revealed)'),
-      channel: idealChip('accept', 'z published ✓ verifies', '[ 3, 3, 8]'),
-      keyState: 'never',
-    }),
-  },
-];
+    },
+    {
+      caption: verification.accepted
+        ? 'The verifier recomputed A·z − c·t, re-derived the challenge from it, and it matched. ' +
+          'The full secret key buffer below was never assembled anywhere — not by the server, not by ' +
+          'the phone, not by this page. That is what a real threshold signature looks like.'
+        : 'The verifier recomputed A·z − c·t and re-derived the challenge. It did not match the one ' +
+          'in the signature, so the signature is rejected. Note which check caught it: the norm check ' +
+          'waved this through, and only the Fiat–Shamir recomputation noticed.',
+      server: idealChip('server', 's^S', 'never revealed'),
+      phone: idealChip('phone', 's^P', 'never revealed'),
+      channel: verdictChip,
+    },
+  ];
+}
 
 function idealSetKeyBuf(state: 'idle' | 'never'): void {
   const buf = document.querySelector<HTMLDivElement>('#ideal-keybuf');
@@ -1128,42 +1254,144 @@ function idealFly(from: 'server' | 'phone'): void {
   window.setTimeout(finish, 700);
 }
 
-function renderIdealStep(i: number): void {
+function renderIdealStep(steps: IdealStep[], i: number): void {
   const serverSlot = document.querySelector<HTMLDivElement>('#ideal-server-slot');
   const phoneSlot = document.querySelector<HTMLDivElement>('#ideal-phone-slot');
   const channelSlot = document.querySelector<HTMLDivElement>('#ideal-channel-slot');
   const caption = document.querySelector<HTMLParagraphElement>('#ideal-caption');
   if (!serverSlot || !phoneSlot || !channelSlot || !caption) return;
-  const step = IDEAL_STEPS[i];
-  const state = step.render();
-  serverSlot.innerHTML = state.server ?? '';
-  phoneSlot.innerHTML = state.phone ?? '';
-  channelSlot.innerHTML = state.channel ?? '<span class="trace-lane-empty">masked z-shares appear here</span>';
+  const step = steps[i];
+  serverSlot.innerHTML = step.server ?? '';
+  phoneSlot.innerHTML = step.phone ?? '';
+  channelSlot.innerHTML = step.channel ?? '<span class="trace-lane-empty">masked z-shares appear here</span>';
   caption.innerHTML = step.caption;
-  idealSetKeyBuf(state.keyState ?? 'never');
-  if (state.fly) requestAnimationFrame(() => idealFly(state.fly!));
+  // The key buffer is never assembled in this path — that is the whole point,
+  // and it is a fact about toy-threshold.ts, not a styling choice.
+  idealSetKeyBuf('never');
+  if (step.fly) requestAnimationFrame(() => idealFly(step.fly!));
 }
 
-async function playIdeal(): Promise<void> {
-  if (idealPlaying) return;
-  const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
-  idealPlaying = true;
-  if (playButton) playButton.disabled = true;
-  const delay = prefersReducedMotion() ? 350 : 1200;
-  for (let i = 0; i < IDEAL_STEPS.length; i += 1) {
-    renderIdealStep(i);
-    await new Promise((resolve) => window.setTimeout(resolve, delay));
+/** Per-attempt rejection-sampling trace, straight from the executed rounds. */
+function renderIdealAttempts(outcome: ToySignOutcome): void {
+  const host = document.querySelector<HTMLDivElement>('#ideal-attempts');
+  if (!host) return;
+  const rows = outcome.attempts
+    .map(
+      (attempt) => `
+      <div class="abort-row ${attempt.accepted ? 'abort-accept' : 'abort-reject'}">
+        <span class="abort-icon" aria-hidden="true">${attempt.accepted ? '✓' : '↻'}</span>
+        <span class="abort-label">Attempt ${attempt.attempt}</span>
+        <code>server ‖z^S‖∞ = ${attempt.serverNorm} ${attempt.serverAccepted ? '&lt;' : '≥'} ${attempt.bound}
+          · phone ‖z^P‖∞ = ${attempt.phoneNorm} ${attempt.phoneAccepted ? '&lt;' : '≥'} ${attempt.bound}</code>
+        <span class="abort-state">${attempt.accepted ? 'BOTH ACCEPT' : 'REJECT — both parties restart'}</span>
+      </div>`,
+    )
+    .join('');
+  host.innerHTML = `
+    <div class="abort-counter"><strong>${outcome.restarts}</strong> coordinated restart${outcome.restarts === 1 ? '' : 's'}
+      in this run, measured — ${outcome.attempts.length} attempt${outcome.attempts.length === 1 ? '' : 's'}
+      in ${outcome.elapsedMs.toFixed(1)} ms.</div>
+    ${rows}`;
+}
+
+/** The verdict, stating only what this run established. */
+function renderIdealVerdict(outcome: ToySignOutcome): void {
+  const host = document.querySelector<HTMLDivElement>('#ideal-verdict');
+  if (!host) return;
+
+  if (outcome.status === 'rejected-by-norm-check') {
+    host.innerHTML = `
+      <div class="verdict-card verdict-bad" data-ideal-verdict="norm-rejected">
+        <span class="verdict-icon" aria-hidden="true">✕</span>
+        <span class="verdict-body">
+          <span class="verdict-label">Norm check rejected the ${outcome.rejectedShare} share</span>
+          <span class="verdict-state">Measured ‖z‖∞ = ${outcome.rejectedNorm} against the per-share bound
+            ${TOY_PER_PARTY_BOUND}. No signature was produced, so there is nothing to verify.
+            ${escapeHtml(outcome.tamperDetail ?? '')}</span>
+        </span>
+      </div>`;
+    return;
   }
-  idealPlaying = false;
-  if (playButton) {
-    playButton.disabled = false;
-    playButton.textContent = '↻ Replay the ideal round';
+
+  if (outcome.status === 'out-of-attempts' || !outcome.verification) {
+    host.innerHTML = `
+      <div class="verdict-card verdict-bad" data-ideal-verdict="out-of-attempts">
+        <span class="verdict-icon" aria-hidden="true">✕</span>
+        <span class="verdict-body">
+          <span class="verdict-label">Rejection sampling did not converge</span>
+          <span class="verdict-state">${outcome.attempts.length} attempts, no accepted round. No claim is made.</span>
+        </span>
+      </div>`;
+    return;
+  }
+
+  const v = outcome.verification;
+  const accepted = v.accepted;
+  host.innerHTML = `
+    <div class="verdict-card ${accepted ? 'verdict-good' : 'verdict-bad'}" data-ideal-verdict="${accepted ? 'accepted' : v.failedCheck}">
+      <span class="verdict-icon" aria-hidden="true">${accepted ? '✓' : '✕'}</span>
+      <span class="verdict-body">
+        <span class="verdict-label">Toy verifier ${accepted ? 'ACCEPTS' : 'REJECTS'} this signature</span>
+        <span class="verdict-state">
+          Norm check: ‖z‖∞ = ${v.zNorm} ${v.normOk ? '&lt;' : '≥'} ${v.zBound} — ${v.normOk ? 'pass' : 'FAIL'}.
+          Fiat–Shamir check: re-deriving the challenge from A·z − c·t ${v.challengeOk ? 'reproduced c — pass' : 'did NOT reproduce c — FAIL'}.
+          ${outcome.tamperDetail ? escapeHtml(outcome.tamperDetail) : ''}
+        </span>
+      </span>
+    </div>
+    <div class="verdict-card verdict-good" data-ideal-verdict="never-combined">
+      <span class="verdict-icon" aria-hidden="true">✓</span>
+      <span class="verdict-body">
+        <span class="verdict-label">Secret never combined</span>
+        <span class="verdict-state">Each party's s-share stayed inside a closure it never returns;
+          the signing routine holds no variable containing s^S + s^P. This is the property the
+          ML-DSA-65 exhibit above cannot reach — bought here by giving up real parameters.</span>
+      </span>
+    </div>`;
+}
+
+async function playIdeal(tamper: ToyTamper = 'none'): Promise<void> {
+  if (idealPlaying) return;
+  const buttons = ['#ideal-play', '#ideal-tamper-norm', '#ideal-tamper-nudge']
+    .map((id) => document.querySelector<HTMLButtonElement>(id))
+    .filter((b): b is HTMLButtonElement => b !== null);
+  idealPlaying = true;
+  for (const button of buttons) button.disabled = true;
+
+  try {
+    if (!toySetup) toySetup = toyDkg();
+    const message = encodeText(messageInput.value.trim() || 'Transfer $1000 to Alice');
+    // The protocol runs for real, right here, before anything is rendered.
+    toyOutcome = toyThresholdSign(message, toySetup, tamper);
+
+    const steps = idealSteps(toyOutcome);
+    renderIdealVerdict(toyOutcome);
+    renderIdealAttempts(toyOutcome);
+    const delay = prefersReducedMotion() ? 250 : 1000;
+    for (let i = 0; i < steps.length; i += 1) {
+      renderIdealStep(steps, i);
+      if (i < steps.length - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
+      }
+    }
+  } finally {
+    idealPlaying = false;
+    for (const button of buttons) button.disabled = false;
+    const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
+    if (playButton) playButton.textContent = '↻ Run it again (fresh randomness)';
   }
 }
 
 function wireIdealStage(): void {
-  const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
-  if (playButton) playButton.addEventListener('click', () => void playIdeal());
+  document
+    .querySelector<HTMLButtonElement>('#ideal-play')
+    ?.addEventListener('click', () => void playIdeal('none'));
+  document
+    .querySelector<HTMLButtonElement>('#ideal-tamper-norm')
+    ?.addEventListener('click', () => void playIdeal('inflate'));
+  document
+    .querySelector<HTMLButtonElement>('#ideal-tamper-nudge')
+    ?.addEventListener('click', () => void playIdeal('nudge'));
 }
 
 // ---------------------------------------------------------------------------
@@ -1179,7 +1407,7 @@ function runAbortsDemo(): void {
         <div class="abort-row ${accepted ? 'abort-accept' : 'abort-reject'}">
           <span class="abort-icon" aria-hidden="true">${accepted ? '✓' : '↻'}</span>
           <span class="abort-label">Attempt ${i + 1}</span>
-          <code>|z|∞ = ${a.zNorm} ${accepted ? '&lt;' : '≥'} β=${TOY_Z_BOUND}</code>
+          <code>|z|∞ = ${a.zNorm} ${accepted ? '&lt;' : '≥'} β=${TRACE_Z_BOUND}</code>
           <span class="abort-state">${accepted ? 'ACCEPT' : 'REJECT — both parties discard & restart'}</span>
         </div>`;
     })

@@ -2,7 +2,7 @@
   "name": "crypto-lab-threshold-mldsa",
   "private": true,
   "version": "0.0.0",
-  "description": "Browser-based educational demo of ML-DSA-65 (FIPS 204) in two-party split custody: the genuine secret key is additively shared between server and phone, and combining both shares produces a standard-verifying signature. Teaches the shape of threshold lattice signing; it does NOT achieve key-non-reconstruction (an open research problem).",
+  "description": "Browser-based educational demo of threshold lattice signing, shown from both sides: an ML-DSA-65 (FIPS 204) two-party split-custody path that emits a standard-verifying signature by combining the key shares, and a never-combine two-party module-SIS protocol at toy parameters with its own verifier, real rejection sampling and a breakable z-share. Neither claims what the other provides.",
   "homepage": "https://systemslibrarian.github.io/crypto-lab-threshold-mldsa/",
   "type": "module",
   "scripts": {
@@ -35,6 +35,7 @@
     "vitest": "^3.2.7"
   },
   "dependencies": {
+    "@noble/hashes": "^2.2.0",
     "@noble/post-quantum": "^0.6.1"
   }
 }

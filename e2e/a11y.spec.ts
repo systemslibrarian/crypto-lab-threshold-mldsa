@@ -73,9 +73,17 @@ async function driveDemos(page: Page): Promise<void> {
   // escrow state and the animated ideal (never-combine) sequence.
   await page.locator('#contrast-ideal').click();
   await expect(page.locator('#ideal-stage')).toBeVisible({ timeout: 10_000 });
-  // Play the ideal round so every step's lane chips and the accept chip render.
+  // Run the never-combine protocol for real so every step's lane chips, the
+  // accept chip, the verdict cards and the attempt trace render.
   await page.locator('#ideal-play').click();
-  await expect(page.locator('#ideal-channel-slot .ideal-chip-accept')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#ideal-channel-slot .ideal-chip-accept')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-ideal-verdict="accepted"]')).toBeVisible({ timeout: 30_000 });
+  // Then drive both learner-caused failures so the rejection palettes are scanned.
+  await page.locator('#ideal-tamper-norm').click();
+  await expect(page.locator('[data-ideal-verdict="norm-rejected"]')).toBeVisible({ timeout: 30_000 });
+  await page.locator('#ideal-tamper-nudge').click();
+  await expect(page.locator('[data-ideal-verdict="challenge"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#ideal-channel-slot .ideal-chip-reject')).toBeVisible({ timeout: 30_000 });
   await page.locator('#contrast-escrow').click();
   await expect(page.locator('#contrast-view .contrast-key-live')).toBeVisible({ timeout: 10_000 });
 

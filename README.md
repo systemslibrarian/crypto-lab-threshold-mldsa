@@ -8,7 +8,7 @@ This repository demonstrates the central threshold-signing question for post-qua
 - Can the verifier remain unchanged and still accept that signature under standard FIPS 204 verification?
 - Why is this harder than threshold Schnorr or threshold BLS?
 
-The demo explores those questions with an educational two-party **split-custody** simulation (the genuine ML-DSA key is additively shared, then combined to sign) based on the current research direction. It illustrates the protocol *shape* honestly — it does not implement a real threshold scheme (see "What's Real and What's Simulated" below):
+The demo answers them from two directions at once, because no single browser demo can have both halves. The **ML-DSA-65 path** keeps real FIPS 204 parameters and emits a signature the unmodified standard verifier accepts — and pays for it by combining the two additive key shares in one place, so it is split custody rather than threshold signing. The **never-combine path** gives up standard compatibility and real parameters and, in exchange, actually runs a two-party protocol in which the full secret is never assembled: a module-SIS Fiat–Shamir-with-aborts signature at toy dimensions (`n = 64`, `k = l = 2`) with its own verifier, real per-party rejection sampling, and real aborts. You can run it, and you can break it. Both paths are labelled for exactly what they are (see "What's Real and What's Simulated" below). The research direction it draws on:
 
 - **Trilithium** — Dufka, Kravtšenko, Laud, Snetkov, ePrint 2025/675
 - **Quorus** — Bienstock, de Castro, Escudero, Polychroniadou, Takahashi, ePrint 2025/1163
@@ -26,7 +26,13 @@ A guided **"Start here — a 5-stop path"** strip sits at the top so a newcomer 
 4. A comparison table of the 2024–2026 threshold ML-DSA research landscape, with a glossary for the security column (UC, malicious, identifiable aborts, FHE-based, proactive security, std compat) and footnotes recording where a scheme does *not* verify under an unmodified FIPS 204 verifier.
 5. Real-world applications for post-quantum multi-party signing.
 
-Two additional interactive panels make the honesty concrete: a **live additive-share combiner** (click to sum one real key byte's two shares mod 256) and an **escrow-vs-ideal contrast experiment**. The escrow view shows the full-key buffer light up red when combined; the ideal view is a **playable animated sequence** of what real threshold signing *would* look like — each party computes its own `z^i = y^i + c·s₁^i` locally, only the masked z-shares cross the channel, and only their sum `z` is published while the full secret-key buffer stays greyed out and is never assembled. It fills the "what it IS" gap next to the "what it is NOT" contrast.
+Two additional interactive panels make the honesty concrete: a **live additive-share combiner** (click to sum one real key byte's two shares mod 256) and an **escrow-vs-never-combine contrast experiment**. The escrow view shows the full-key buffer light up red when combined. The never-combine view **executes a real two-party protocol** at toy lattice parameters:
+
+- Each party samples its own secret share `s^i` and publishes only `t^i = A·s^i`. The sum `s = s^S + s^P` is never formed by anyone — each share lives in a closure the other party and the page cannot read, so the guarantee is structural rather than a promise in a comment.
+- Signing runs for real: nonces, commitments `w^i = A·y^i`, a SHAKE256 Fiat–Shamir challenge via `SampleInBall`, per-party rejection sampling against `‖z^i‖∞ < γ₁ − β`, and genuine coordinated aborts (mean 2.5 attempts per signature, measured).
+- A verifier written for this scheme recomputes `A·z − c·t`, re-derives the challenge, and checks `‖z‖∞ < 2(γ₁ − β)`. Its verdict is what the page reports.
+- **You can break it.** *Corrupt the phone's z-share (over the bound)* pushes one coefficient past `γ₁ − β`; the receiving party's norm check rejects it and **no signature is emitted**. *Corrupt it by one unit* changes the smallest coefficient by 1 — small enough that the norm check waves it through, so the Fiat–Shamir recomputation is what catches it. The verdict names which check fired, from the run.
+- Its parameters carry **no security** and its signatures are **not FIPS 204** — the panel says so on screen, in the panel, before you run it.
 
 > This repo is **educational, not production-safe**. No threshold ML-DSA scheme is NIST-standardized as of 2026.
 
@@ -37,6 +43,7 @@ Use this demo when you want to:
 - understand why threshold lattice signatures are more complicated than threshold Schnorr or BLS
 - study the structure of a two-party ML-DSA protocol in a browser-only environment
 - see additive secret sharing applied to ML-DSA-flavored key components
+- run a genuine never-combine two-party lattice signing protocol end to end at toy parameters, and watch a corrupted z-share get rejected by the norm check or by the Fiat–Shamir check depending on how hard you push
 - compare the measured wall-clock cost of the combine-then-sign path against standalone signing
 - explain threshold post-quantum signing to engineers, students, auditors, or security teams
 - explore future design ideas for root CAs, validator networks, recovery flows, and enterprise approvals
@@ -105,13 +112,19 @@ A cryptography demo earns trust by being precise about its own limits. This one 
 - All randomness comes from the Web Crypto CSPRNG — there is no `Math.random` anywhere in `src/`.
 - Additive secret sharing is real: each share on its own is uniform and reveals nothing about the secret.
 
+**Real, but at toy parameters (`src/toy-threshold.ts`):**
+
+- The never-combine path is an executed two-party protocol, not an animation: real nonces, real commitments, a real SHAKE256 Fiat–Shamir challenge, real per-party rejection sampling with real aborts, and a verifier that really recomputes `A·z − c·t`.
+- The full secret `s = s^S + s^P` is never assembled anywhere in it.
+- Its parameters (`n = 64`, `q = 8380417`, `k = l = 2`, `η = 2`, `τ = 8`, `γ₁ = 4096`) carry **no security**, and it is **not FIPS 204** — its signatures need the verifier in this repo and no standard one will accept them.
+
 **Simulated (for teaching):**
 
-- The round-by-round nonce / `w₁` / challenge / `z` exchanges are *choreography*. They show the protocol's shape but do not produce the signature.
-- The round-by-round walkthrough (nonce / `w₁` / challenge / `z` / secure norm check) shows the protocol's *shape*; it does not run real MPC and does not produce the signature. Each step is explicitly labelled real or illustrative.
-- **To actually sign, the demo combines the two additive byte shares into the full secret key in one place** and calls the standard signer. It therefore does **not** achieve real key-non-reconstruction — the central property a production threshold scheme must provide.
+- In the ML-DSA-65 path, the round-by-round nonce / `w₁` / challenge / `z` exchanges are *choreography*. They show the protocol's shape but do not produce the signature, and each step is explicitly labelled real or illustrative.
+- That path runs no MPC, so it reports no "bytes exchanged" figure — inventing one would be a fabricated measurement.
+- **To emit a standard FIPS 204 signature, the demo combines the two additive byte shares into the full secret key in one place** and calls the standard signer. That path therefore does **not** achieve real key-non-reconstruction.
 
-Bottom line: the ML-DSA math is real and the output is a valid FIPS 204 signature; the *distributed-trust* property is illustrated, not enforced. Closing that gap is the open research problem this lab exists to explain.
+Bottom line: the ML-DSA-65 path has real parameters and a standard-verifiable signature but only illustrates distributed trust; the toy path genuinely enforces distributed trust but at dimensions too small to secure anything. Having both at once is the open research problem this lab exists to explain, and the lab shows you each half rather than blurring them together.
 
 ## Stack
 

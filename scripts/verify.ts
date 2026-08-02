@@ -16,6 +16,12 @@ import {
   thresholdSign,
   verifyWithStandardMLDSA,
 } from '../src/threshold-sign';
+import {
+  TOY_PER_PARTY_BOUND,
+  toyDkg,
+  toySinglePartyAttempt,
+  toyThresholdSign,
+} from '../src/toy-threshold';
 
 type ResultRow = {
   id: number;
@@ -96,6 +102,14 @@ async function main(): Promise<void> {
     mainUi.includes('key-non-reconstruction');
   const noMathRandom = !(await containsMathRandom());
 
+  // The never-combine toy protocol, executed here rather than described.
+  const toySetup = toyDkg();
+  const toyMessage = encodeText('verify-script-never-combine');
+  const toyHonest = toyThresholdSign(toyMessage, toySetup);
+  const toyInflated = toyThresholdSign(toyMessage, toySetup, 'inflate');
+  const toyNudged = toyThresholdSign(toyMessage, toySetup, 'nudge');
+  const toySolo = toySinglePartyAttempt(toyMessage, toySetup);
+
   const results: ResultRow[] = [
     {
       id: 2,
@@ -170,6 +184,33 @@ async function main(): Promise<void> {
       label: 'Standard verifier rejects a tampered signature',
       pass: tamperedSignatureRejected,
       evidence: `tamperedSignatureRejected=${tamperedSignatureRejected}`,
+    },
+    {
+      id: 14,
+      label: 'Never-combine toy protocol signs and its own verifier accepts',
+      pass: toyHonest.status === 'signed' && toyHonest.verification?.accepted === true,
+      evidence: `status=${toyHonest.status} accepted=${toyHonest.verification?.accepted} attempts=${toyHonest.attempts.length}`,
+    },
+    {
+      id: 15,
+      label: 'An over-bound z-share is caught by the norm check, with no signature emitted',
+      pass: toyInflated.status === 'rejected-by-norm-check' && toyInflated.signature === null,
+      evidence: `status=${toyInflated.status} rejectedNorm=${toyInflated.rejectedNorm} bound=${TOY_PER_PARTY_BOUND}`,
+    },
+    {
+      id: 16,
+      label: 'A one-unit corruption passes the norm check and is caught by Fiat–Shamir',
+      pass:
+        toyNudged.status === 'signed' &&
+        toyNudged.verification?.normOk === true &&
+        toyNudged.verification?.challengeOk === false,
+      evidence: `normOk=${toyNudged.verification?.normOk} challengeOk=${toyNudged.verification?.challengeOk}`,
+    },
+    {
+      id: 17,
+      label: 'One party alone cannot make a signature the toy verifier accepts',
+      pass: toySolo.verification.accepted === false,
+      evidence: `accepted=${toySolo.verification.accepted} failedCheck=${toySolo.verification.failedCheck}`,
     },
     {
       id: 13,
