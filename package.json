@@ -32,7 +32,7 @@
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.4",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@noble/hashes": "^2.2.0",
