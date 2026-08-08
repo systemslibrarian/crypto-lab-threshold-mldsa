@@ -80,7 +80,7 @@ app.innerHTML = `
         <div id="server-share-box" class="masked-box">Waiting for distributed key generation…</div>
       </div>
 
-      <div class="shared-lane" aria-label="Shared communication channel">
+      <div class="shared-lane" role="group" aria-label="Shared communication channel">
         <div class="lane-label">Shared channel</div>
         <div class="arrow arrow-right">ρ, w, challenge, hints</div>
         <div class="joint-artifact">
@@ -323,12 +323,12 @@ app.innerHTML = `
           </div>
         </div>
         <p id="verdict-bridge" class="small-note verdict-bridge">Both cards describe the <strong>same run</strong>: run it and see for yourself. You stopped either party from signing alone (custody, green) — but to actually make the signature, one machine briefly held the whole reconstructed key (no key-non-reconstruction, red). Custody and distributed-trust are two different properties; this build earns the first, not the second.</p>
-        <div id="protocol-log" class="log-panel" role="log" aria-live="polite" aria-relevant="additions text">Awaiting the first signing run…</div>
+        <div id="protocol-log" class="log-panel" role="log" tabindex="0" aria-live="polite" aria-relevant="additions text">Awaiting the first signing run…</div>
       </article>
 
       <article class="panel exhibit">
         <h3>Exhibit 4 — Published threshold ML-DSA landscape</h3>
-        <div class="table-wrap">
+        <div class="table-wrap" role="region" tabindex="0" aria-label="Published threshold ML-DSA landscape, scrollable table">
           <table>
             <caption class="sr-only">Comparison of threshold ML-DSA research schemes and their properties.</caption>
             <thead>

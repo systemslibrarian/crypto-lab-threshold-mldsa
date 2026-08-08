@@ -1,138 +1,36 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { test } from '@playwright/test';
+import { boot, driveAllStates, NARROW } from './gate';
 
 /**
- * Strict WCAG regression gate for the Threshold ML-DSA lab.
+ * WCAG A/AA regression gate.
  *
- * The app is a single-page demo rendered by main.ts (no tabs, no <details>).
- * It has three live buttons — Start threshold signing, Disable phone, Run quick
- * benchmark — each of which rewrites the status banner, the stats grid and the
- * protocol log with dynamically-injected result markup. So we DRIVE those demos
- * (both the drop-one/disabled path and the full signing + benchmark paths) so
- * every injected result region is in the DOM and painted when axe runs.
+ * The lab is driven through every state a reader can actually reach: real
+ * ML-DSA-65 key generation awaited, both skip links focused, the share-combine
+ * widget revealed and re-hidden, all six steps of the round trace walked and
+ * BOTH of the verdicts it can land on reached, the trace returned to its empty
+ * state, the aborts micro-demo re-run until its trace holds both a rejected and
+ * an accepted attempt, both glossaries opened, the escrow key buffer read with
+ * its MATERIALIZED flag, the never-combine toy protocol executed honestly and
+ * then tampered with in both of its two ways, a real signature produced, the
+ * benchmark run, the phone disabled and the drop-one refusal driven, and the
+ * phone restored. Every one of those states is scanned, in both themes, at
+ * desktop and phone width.
  *
- * Scans both themes with WCAG 2.0/2.1 A + AA rules; asserts zero violations.
+ * See `gate.ts` for why nothing is injected into the page, why each scan
+ * asserts its content first, and why `violations` is not the whole oracle.
  */
 
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+for (const theme of ['dark', 'light'] as const) {
+  test(`no WCAG A/AA violations in ${theme} theme`, async ({ page }) => {
+    test.setTimeout(900_000);
+    await boot(page, theme);
+    await driveAllStates(page, theme);
+  });
 
-// Neutralize animation/transition/opacity so mid-flight states (button hover
-// lift, disabled fade) can't hide text from the contrast checker.
-async function killMotion(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content: `*,*::before,*::after{
-      animation-duration:0s!important;animation-delay:0s!important;
-      transition-duration:0s!important;transition-delay:0s!important;
-      opacity:1!important;scroll-behavior:auto!important;
-    }`,
+  test(`no WCAG A/AA violations in ${theme} theme at 380px`, async ({ page }) => {
+    test.setTimeout(900_000);
+    await page.setViewportSize(NARROW);
+    await boot(page, theme);
+    await driveAllStates(page, `${theme} @380px`);
   });
 }
-
-// Generic collapsible expansion for robustness (this lab has none today).
-async function revealAll(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    for (const d of document.querySelectorAll('details')) (d as HTMLDetailsElement).open = true;
-    for (const el of document.querySelectorAll<HTMLElement>('[hidden]')) el.removeAttribute('hidden');
-  });
-}
-
-// Drive every live demo so injected result regions (log rows, stat cards,
-// status tones) exist and are painted during the scan.
-async function driveDemos(page: Page): Promise<void> {
-  // Full 2-of-2 signing run: rewrites the protocol log with round rows and the
-  // stats grid with a PASS/FAIL verifier cell.
-  await page.locator('#sign-button').click();
-  await expect(page.locator('#protocol-log .log-row').first()).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('#sign-button')).toBeEnabled({ timeout: 60_000 });
-
-  // Benchmark run: injects the log-ok result row and benchmark stats.
-  await page.locator('#benchmark-button').click();
-  await expect(page.locator('#protocol-log .log-ok')).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('#benchmark-button')).toBeEnabled({ timeout: 60_000 });
-
-  // Drop-one path: disable the phone and attempt to sign so the log-reject
-  // "2-of-2 enforced" region and warning-tone banner render.
-  await page.locator('#phone-toggle').click();
-  await expect(page.locator('#phone-toggle')).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('#sign-button').click();
-  await expect(page.locator('#protocol-log .log-reject')).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('#sign-button')).toBeEnabled({ timeout: 60_000 });
-
-  // Restore the phone so the enabled/idle styling is also covered.
-  await page.locator('#phone-toggle').click();
-  await expect(page.locator('#phone-toggle')).toHaveAttribute('aria-pressed', 'false');
-
-  // Interactive round trace: advance through every step so all lane chips,
-  // channel values and the accept/reject chip render at least once.
-  for (let i = 0; i < 6; i += 1) {
-    await page.locator('#trace-next').click();
-  }
-  await expect(page.locator('#trace-stage .trace-chip').last()).toBeVisible({ timeout: 10_000 });
-
-  // Escrow vs. ideal contrast experiment: render BOTH the red "materialized"
-  // escrow state and the animated ideal (never-combine) sequence.
-  await page.locator('#contrast-ideal').click();
-  await expect(page.locator('#ideal-stage')).toBeVisible({ timeout: 10_000 });
-  // Run the never-combine protocol for real so every step's lane chips, the
-  // accept chip, the verdict cards and the attempt trace render.
-  await page.locator('#ideal-play').click();
-  await expect(page.locator('#ideal-channel-slot .ideal-chip-accept')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('[data-ideal-verdict="accepted"]')).toBeVisible({ timeout: 30_000 });
-  // Then drive both learner-caused failures so the rejection palettes are scanned.
-  await page.locator('#ideal-tamper-norm').click();
-  await expect(page.locator('[data-ideal-verdict="norm-rejected"]')).toBeVisible({ timeout: 30_000 });
-  await page.locator('#ideal-tamper-nudge').click();
-  await expect(page.locator('[data-ideal-verdict="challenge"]')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('#ideal-channel-slot .ideal-chip-reject')).toBeVisible({ timeout: 30_000 });
-  await page.locator('#contrast-escrow').click();
-  await expect(page.locator('#contrast-view .contrast-key-live')).toBeVisible({ timeout: 10_000 });
-
-  // Aborts micro-demo: run until accepted so both accept and reject rows appear.
-  await page.locator('#aborts-run').click();
-  await expect(page.locator('#aborts-view .abort-accept')).toBeVisible({ timeout: 10_000 });
-
-  // Live additive-share combine: reveal the summed key byte and reroll.
-  await page.locator('#share-combine-btn').click();
-  await expect(page.locator('#share-result-byte.share-byte-revealed')).toBeVisible({ timeout: 10_000 });
-  await page.locator('#share-reroll-btn').click();
-
-  // Open both glossary disclosures so their contents are scanned.
-  await page.evaluate(() => {
-    for (const d of document.querySelectorAll('details.glossary')) (d as HTMLDetailsElement).open = true;
-  });
-}
-
-async function scan(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  const summary = results.violations.map((v) => ({
-    id: v.id,
-    impact: v.impact,
-    help: v.help,
-    nodes: v.nodes.map((n) => n.target.join(' ')).slice(0, 5),
-  }));
-  expect(summary).toEqual([]);
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.goto('.');
-  await expect(page.locator('#cl-theme-toggle')).toBeVisible();
-  await expect(page.locator('#sign-button')).toBeVisible();
-  await killMotion(page);
-});
-
-test('no WCAG A/AA violations in dark theme (all demos driven)', async ({ page }) => {
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await driveDemos(page);
-  await killMotion(page);
-  await revealAll(page);
-  await scan(page);
-});
-
-test('no WCAG A/AA violations in light theme (all demos driven)', async ({ page }) => {
-  await page.locator('#cl-theme-toggle').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await driveDemos(page);
-  await killMotion(page);
-  await revealAll(page);
-  await scan(page);
-});

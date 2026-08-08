@@ -28,6 +28,12 @@
   --gold-ink: #ffd700;
   --green-ink: #00ff88;
   --purple-ink: #dcc3ff;
+  /* Danger ink. --danger (#ff3366) is a fine dot and border colour but it is
+     not a text colour: the "MATERIALIZED IN MEMORY" flag is written inside a
+     <code> chip, whose rgba(157,78,221,.16) tint composites the surface under
+     the flag to rgb(68,36,77), where #ff3366 measures 3.69:1. #ff6b8a is the
+     same hue lifted until it clears AA there — 4.81:1. */
+  --danger-ink: #ff6b8a;
   /* Recessed and subtly-raised surfaces. */
   --inset: rgba(9, 12, 22, 0.35);
   --inset-soft: rgba(255, 255, 255, 0.04);
@@ -44,7 +50,14 @@
   --panel: #ffffff;
   --panel-2: #eef3fb;
   --text: #101828;
-  --muted: #475467;
+  /* #475467 was just short of its own contract. It is the secondary ink for
+     every label on the page, including the `.contrast-tag` inside an
+     `.ideal-chip-phone` — a magenta chip on a magenta lane, two `--inset`
+     surfaces deep, which composites to rgb(226,182,220). #475467 measures
+     4.37:1 there. #414d5f is the same slate hue darkened until it clears:
+     4.88:1 on that chip, and monotonically better everywhere else, because
+     light theme never paints --muted on a surface darker than the ink. */
+  --muted: #414d5f;
   --border: rgba(16, 24, 40, 0.12);
   /* Light-theme control boundary (WCAG 2.1 SC 1.4.11). --border composites to
      #e2e3e5 on white — 1.28:1. #7d8493 is the same near-neutral blue, darkened:
@@ -54,8 +67,19 @@
   --shadow: 0 18px 40px rgba(17, 24, 39, 0.08);
   /* Darkened ink so accent text clears WCAG AA (>=4.5:1) on light surfaces. */
   --gold-ink: #7a5d00;
-  --green-ink: #067647;
+  /* #067647 was measured against white. The deepest surface it actually lands
+     on is the never-combine key buffer — `--inset-soft` inside `.ideal-stage`'s
+     `--inset` inside `.contrast-experiment`'s `--inset`, three recessed layers
+     over the panel, which composites to rgb(211,215,223). #067647 measures
+     3.95:1 on that; #05613a measures 5.24:1, and is better on every lighter
+     surface too. */
+  --green-ink: #05613a;
   --purple-ink: #6d28d9;
+  /* Light-theme danger ink. The previous value here was #c01043, applied
+     ad hoc to `.contrast-flag` and `.verdict-bad .verdict-icon`; on the <code>
+     chip's tinted rgb(220,187,221) it still measured 3.58:1. #9b0032 clears it
+     at 5.00:1 and replaces both hard-coded copies. */
+  --danger-ink: #9b0032;
   --inset: rgba(16, 24, 40, 0.05);
   --inset-soft: rgba(16, 24, 40, 0.035);
   --focus: #1a56db;
@@ -137,6 +161,13 @@ a:focus-visible,
 .shell {
   padding: 24px;
   display: grid;
+  /* An implicit `auto` track takes a MIN-CONTENT minimum from its widest child,
+     so one wide descendant anywhere on the page stretches every panel and
+     scrolls the document sideways (WCAG 1.4.10). Pinning the single column to
+     minmax(0, 1fr) puts a zero floor under it. Measured: without this, the
+     research table's 439px min-content propagated up and made the shell 497px
+     wide inside a 380px viewport. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
 }
 
@@ -150,7 +181,11 @@ a:focus-visible,
 .cl-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(1rem,4vw,3rem);flex-wrap:wrap;margin:clamp(1rem,3vw,2rem) 0 1.5rem;}
 .cl-hero-main{flex:1 1 22rem;min-width:min(100%,20rem);}
 .cl-hero-title{margin:0;font-size:clamp(1.6rem,3.8vw,2.7rem);font-weight:700;line-height:1.1;letter-spacing:.01em;}
-.cl-hero-sub{margin:.4rem 0 0;font-size:clamp(.9rem,1.6vw,1.05rem);letter-spacing:.01em;opacity:.85;}
+/* No `opacity: .85` on the subtitle. It is already a <p>, so it already takes
+   --muted; the fade was a second de-emphasis on top of the first, and over the
+   light theme's cyan/purple hero wash it measured 3.63:1 at 380px. Unfaded on
+   the same wash: 4.80:1. */
+.cl-hero-sub{margin:.4rem 0 0;font-size:clamp(.9rem,1.6vw,1.05rem);letter-spacing:.01em;}
 .cl-hero-desc{margin:.55rem 0 0;font-size:1rem;line-height:1.5;color:var(--text-dim,var(--muted));max-width:60ch;}
 .cl-hero-why{flex:0 1 min(40%,26rem);min-width:min(100%,15rem);border:1px solid var(--border);border-radius:10px;padding:.85rem 1.05rem;background:color-mix(in oklab,var(--accent,var(--server)) 6%,transparent);}
 .cl-hero-why-label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.14em;}
@@ -305,7 +340,7 @@ blockquote span {
 .protocol-stage {
   padding: 20px;
   display: grid;
-  grid-template-columns: 1fr 1.1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
   gap: 18px;
   align-items: stretch;
 }
@@ -620,7 +655,9 @@ td {
   .protocol-stage,
   .reality-grid,
   .exhibits-grid {
-    grid-template-columns: 1fr;
+    /* `minmax(0, 1fr)`, not a bare `1fr`: a bare `1fr` is `minmax(auto, 1fr)`
+       and re-drops the min-content floor the base rules above removed. */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .panel,
@@ -652,7 +689,7 @@ td {
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .log-top,
@@ -725,11 +762,7 @@ td {
 }
 
 .verdict-bad .verdict-icon {
-  color: var(--danger);
-}
-
-:root[data-theme='light'] .verdict-bad .verdict-icon {
-  color: #c01043;
+  color: var(--danger-ink);
 }
 
 .verdict-idle .verdict-icon {
@@ -1006,11 +1039,9 @@ td {
   font-weight: 700;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
-  color: var(--danger);
-}
-
-:root[data-theme='light'] .contrast-flag {
-  color: #c01043;
+  /* Not --danger: this flag is written inside a <code> chip, whose purple tint
+     is the surface it actually lands on. See --danger-ink. */
+  color: var(--danger-ink);
 }
 
 .contrast-flag-ok {
@@ -1077,7 +1108,7 @@ td {
 
 @media (max-width: 640px) {
   .verdict-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1210,14 +1241,14 @@ td {
 
 @media (max-width: 900px) {
   .guided-path-steps {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* --- Fixed-lane animated round trace (Exhibit 2) --- */
 .trace-lanes {
   display: grid;
-  grid-template-columns: 1fr 1.15fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 10px;
   align-items: start;
 }
@@ -1364,7 +1395,7 @@ td {
 
 .ideal-lanes {
   display: grid;
-  grid-template-columns: 1fr 1.15fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 10px;
   align-items: start;
 }
@@ -1441,14 +1472,19 @@ td {
   border-color: rgba(0, 255, 136, 0.42);
 }
 
-/* Greyed, never-assembled key buffer — the whole point of the ideal path. */
+/* The never-assembled key buffer — the whole point of the ideal path.
+   It used to carry `opacity: .6` to say "this is not filled in". That faded its
+   own --muted label and struck-through hex to 3.86:1 in dark and 2.44:1 in
+   light, and the ✓ NEVER ASSEMBLED flag to 2.66:1 in light — and the card said
+   the same thing three other ways already: a dashed border, a <s> strikethrough
+   over the bytes, and the green flag itself. The opacity was the only one of
+   the four that cost anything, so it is gone. */
 .ideal-keybuf {
   margin-top: 12px;
   border-radius: 10px;
   border: 1px dashed var(--border);
   background: var(--inset-soft);
   padding: 10px 12px;
-  opacity: 0.6;
 }
 
 .ideal-keybuf-never {
@@ -1474,7 +1510,7 @@ td {
 @media (max-width: 640px) {
   .trace-lanes,
   .ideal-lanes {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
