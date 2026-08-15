@@ -30,13 +30,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The vitest suites: sharing, threshold (the ML-DSA-65 split-custody
+      # path), toy-threshold (the never-combine module-SIS protocol) and trace.
+      # They ran only in ci.yml, a separate workflow on the same push, which
+      # cannot stop the deploy that push triggers.
+      - name: Unit tests (vitest)
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      # scripts/verify.ts — the claim-by-claim audit that ends each run with a
+      # pass/fail row per advertised property and sets a non-zero exit code if
+      # any row fails. It is the only check that the page's stated claims and
+      # its behaviour still agree, and it was not on the publishing path.
+      - name: Verification suite
+        run: npm run verify
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Accessibility gate (axe-core, WCAG A/AA)
+      # `test:a11y` is bare `playwright test`, so this also runs
+      # never-combine.spec.ts, not just the axe pass.
+      - name: Browser claims and accessibility gate
         run: npm run test:a11y
 
       - name: Upload artifact
