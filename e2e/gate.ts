@@ -127,7 +127,7 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
   await expect(page.locator('#sign-button')).toBeVisible();
-  await expect(page.locator('#cl-theme-toggle')).toBeVisible();
+  await expect(page.locator('.cl-topbar')).toBeVisible();
   // Real ML-DSA-65 key generation, split into additive shares, then verified.
   await expect(page.locator('#status-banner')).toHaveClass(/tone-success/, { timeout: 60_000 });
   await expect(page.locator('#server-share-box .masked-row')).toHaveCount(4);

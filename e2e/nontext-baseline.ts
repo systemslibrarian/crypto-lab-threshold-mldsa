@@ -20,7 +20,6 @@ export const NONTEXT_BASELINE: Record<
   "control-boundary|a.cl-btn": { ratio: 2.45, required: 3.0, unverified: false },
   "control-boundary|button#aborts-run.secondary-button": { ratio: 1.36, required: 3.0, unverified: false },
   "control-boundary|button#benchmark-button.secondary-button": { ratio: 1.37, required: 3.0, unverified: false },
-  "control-boundary|button#cl-theme-toggle.cl-btn.cl-icon": { ratio: 2.45, required: 3.0, unverified: false },
   "control-boundary|button#contrast-escrow.secondary-button": { ratio: 1.36, required: 3.0, unverified: false },
   "control-boundary|button#contrast-ideal.secondary-button": { ratio: 1.36, required: 3.0, unverified: false },
   "control-boundary|button#ideal-tamper-norm.secondary-button": { ratio: 1.36, required: 3.0, unverified: false },
