@@ -475,10 +475,29 @@ export async function auditNonText(page: Page, within = 'body *'): Promise<NonTe
 
       const cs = styleOf(el);
       const fillOwn = ownPaint(cs, r, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
-      const bw = ['Top', 'Right', 'Bottom', 'Left'].map((s) =>
-        parseFloat(cs.getPropertyValue(`border-${s.toLowerCase()}-width`) || '0')
-      );
-      const hasBorder = bw.some((w) => w > 0) && cs.borderTopStyle !== 'none';
+      // PER SIDE, not `border-top` for all four. The earlier fleet form of this
+      // read `border-*-width` on every side but then judged `borderTopStyle`
+      // and measured `borderTopColor` alone, which silently measures the WRONG
+      // EDGE whenever a control is delineated by one side only — elsewhere in
+      // this fleet that reported 1.12:1 for a selected tab whose entire
+      // boundary was a 3px `border-bottom` underline, the ARIA tab pattern's
+      // normal delineator.
+      //
+      // A side also has to be OPAQUE ENOUGH TO PAINT. `border: 1px solid
+      // transparent` is a layout spacer, not a delineator — it reserves the
+      // 1px a coloured state will later occupy so nothing shifts. Counting the
+      // transparent spacer as a border would make a control with no fill and
+      // no painted edge, identified by its text alone — exactly the case the
+      // "is it trying to draw itself as a control?" test below exists to
+      // exclude — report 1.00:1.
+      const SIDES = ['top', 'right', 'bottom', 'left'] as const;
+      const paintedSides = SIDES.filter((side) => {
+        if (parseFloat(cs.getPropertyValue(`border-${side}-width`) || '0') <= 0) return false;
+        if (cs.getPropertyValue(`border-${side}-style`) === 'none') return false;
+        const c = resolve(cs.getPropertyValue(`border-${side}-color`));
+        return !!c && c.a > 0;
+      });
+      const hasBorder = paintedSides.length > 0;
       const outlineW = parseFloat(cs.outlineWidth || '0');
       const hasOutline = outlineW > 0 && cs.outlineStyle !== 'none';
 
@@ -510,8 +529,8 @@ export async function auditNonText(page: Page, within = 'body *'): Promise<NonTe
       let best = fillRatio;
       let how = `fill ${fillRatio.toFixed(2)}:1 vs surround`;
 
-      if (hasBorder) {
-        const bc = resolve(cs.borderTopColor) ?? TRANSPARENT;
+      for (const side of paintedSides) {
+        const bc = resolve(cs.getPropertyValue(`border-${side}-color`)) ?? TRANSPARENT;
         // Over the element's OWN FILL, not the surround: `background-clip`
         // defaults to `border-box`, so the background really is painted
         // underneath the border. It matters wherever one translucent edge token
@@ -523,7 +542,7 @@ export async function auditNonText(page: Page, within = 'body *'): Promise<NonTe
         const borderRatio = ratio(border, surround);
         if (borderRatio > best) {
           best = borderRatio;
-          how = `border ${borderRatio.toFixed(2)}:1 vs surround`;
+          how = `border-${side} ${borderRatio.toFixed(2)}:1 vs surround`;
         }
       }
       if (hasOutline) {
