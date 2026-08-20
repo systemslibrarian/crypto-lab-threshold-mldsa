@@ -27,7 +27,7 @@
     "educational"
   ],
   "devDependencies": {
-    "@axe-core/playwright": "^4.10.0",
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "tsx": "^4.23.5",
     "typescript": "~7.0.2",
@@ -35,7 +35,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@noble/hashes": "^2.2.0",
-    "@noble/post-quantum": "^0.6.1"
+    "@noble/hashes": "^2.3.0",
+    "@noble/post-quantum": "^0.7.0"
   }
 }
