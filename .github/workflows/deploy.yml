@@ -1,8 +1,28 @@
 name: Deploy to GitHub Pages
 
+# One workflow, one gate. This lab used to split them: ci.yml ran npm ci, the
+# build, the vitest suites and scripts/verify.ts on pull_request, and deploy.yml
+# ran those same three commands PLUS the browser gate (Playwright: the axe WCAG
+# scan and never-combine.spec.ts) on push to main. Dependabot's auto-merge hung
+# off ci.yml, the lighter of the two. So a bump only had to satisfy build, unit
+# tests and verify to land on main -- and the browser gate, which auto-merge
+# could not see, would then fail on the merge commit. Nothing goes red in
+# between: the PR is green, the merge is clean, and main quietly stops shipping.
+# Staleness is not a state anything reports.
+#
+# So the gate a bump merges against is now literally the gate the deploy runs --
+# one `build` job, depended on by both `deploy` and `dependabot-auto-merge`.
+# ci.yml is deleted rather than kept beside it: a second copy of a gate is how
+# the two drifted apart in the first place.
 on:
   push:
     branches: [main]
+  # The gate has to judge pull requests too, or auto-merge has nothing to wait
+  # on. Deliberately unfiltered, matching ci.yml's bare `pull_request:` -- adding
+  # `branches: [main]` here would silently shrink PR coverage to main-targeting
+  # pull requests only.
+  pull_request:
+  # Required by the post-merge dispatch at the bottom of this file.
   workflow_dispatch:
 
 permissions:
@@ -11,7 +31,11 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # Keyed by ref, NOT a bare `pages`. Now that pull_request is a trigger and
+  # cancel-in-progress is on, a bare group would let a PR run cancel a live main
+  # deploy -- and `cancelled` is one of the shapes that ships nothing while
+  # looking like nothing went wrong.
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -61,6 +85,16 @@ jobs:
           path: dist
 
   deploy:
+    # A pull request is gated, never published. `!= 'pull_request'` and NOT
+    # `== 'push'`: the latter reads as equivalent and also skips
+    # workflow_dispatch, which is the one trigger the post-merge dispatch below
+    # depends on -- the dispatched run would build, pass the gate, skip this job,
+    # and leave the site exactly as stale as it was.
+    #
+    # Note this is safe to gate only because build and deploy are separate jobs.
+    # Where they are one job, gating it off for pull requests disables the PR
+    # gate itself, so the PR runs nothing and reports nothing.
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -70,3 +104,65 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  # Dependabot only. `needs: build` is the whole safety argument, and it is the
+  # SAME build job `deploy` needs -- so a bump cannot merge unless the thing that
+  # would later block the deploy has already gone green on the PR. This job used
+  # to live in ci.yml behind `needs: verify`, a job that installed no Playwright
+  # browser and ran no axe scan.
+  dependabot-auto-merge:
+    needs: build
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write   # required by the deploy dispatch; without it gh workflow run 403s
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v3
+      # Majors included on purpose. `needs:` above already required the whole
+      # gate to pass, and that gate -- unit tests, build, verify, axe WCAG and
+      # the e2e claims -- judges a bump far better than its version number does.
+      # A major that actually breaks this lab fails the gate and stays open for
+      # a human. (dependabot.yml separately keeps majors OUT of the grouped PR,
+      # so one breaking major cannot make a batch of safe bumps unmergeable.)
+      - name: Merge any bump whose gate went green
+        # Retry: a sibling PR merging first moves main underneath us and GitHub
+        # rejects with "Base branch was modified". That is benign, so try again
+        # rather than failing the run over a race.
+        run: |
+          for attempt in 1 2 3; do
+            if gh pr merge --squash --delete-branch "$PR_URL"; then
+              exit 0
+            fi
+            echo "merge attempt $attempt failed; base branch may have moved - retrying"
+            sleep 15
+          done
+          echo "::warning::gate passed but the merge did not land after 3 attempts;"
+          echo "::warning::leaving this PR open - Dependabot will rebase and retry."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # A merge made with GITHUB_TOKEN raises no push event -- GitHub suppresses
+      # them so workflows cannot retrigger themselves -- so deploy would never run
+      # and the site would keep serving the previous build. Ask for it explicitly;
+      # a workflow_dispatch through the API is not suppressed. The dispatched run
+      # is the same gate-then-deploy pipeline, so a bad merge still ships nothing.
+      #
+      # The filename below has to be the one THIS repo has. It is deploy.yml here
+      # -- and after the consolidation this file IS deploy.yml, so the dispatch
+      # names the file it lives in. Some labs have deploy-pages.yml; copying a
+      # reference lab verbatim gives a 404 that fails only on the auto-merge
+      # path, only after the merge has already landed.
+      - name: Deploy the merged result
+        if: success()
+        run: |
+          if gh pr view "$PR_URL" --json state --jq .state | grep -q MERGED; then
+            gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main \
+              || echo "::warning::deploy dispatch failed; run deploy.yml by hand"
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
