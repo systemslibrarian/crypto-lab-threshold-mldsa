@@ -146,7 +146,7 @@ is rejected — the regression that guards the old share/key disconnect), that a
 cannot forge, forgery/tamper rejection by the standard verifier, and that no fabricated MPC
 byte counts leak into results. `npm run verify` additionally checks the no-`Math.random`
 rule and the honesty disclosures. `build`, `test`, and `verify` all run on every push and
-pull request via GitHub Actions (`.github/workflows/ci.yml`).
+pull request via GitHub Actions (`.github/workflows/deploy.yml`).
 
 ## Repo Description
 
