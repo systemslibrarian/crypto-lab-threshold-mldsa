@@ -161,7 +161,7 @@ app.innerHTML = `
           <ul>
             <li>The <strong>never-combine</strong> path below is a genuine executed two-party protocol on a small module lattice: real nonces, real commitments, a real SHAKE256 Fiat–Shamir challenge, real per-party rejection sampling with real aborts, and a verifier written here that really recomputes A·z − c·t.</li>
             <li>The full secret <code>s = s^S + s^P</code> is never assembled in it — each share lives in a closure neither the other party nor the page can read.</li>
-            <li>Its parameters (n = 64, k = l = 2) carry <strong>no security</strong>, and its signatures are <strong>not FIPS 204</strong> — no standard verifier accepts them. Real parameters with key-non-reconstruction is the open research problem; this lab shows you each half separately rather than pretending to have both.</li>
+            <li>Its parameters (n = 64, k = l = 2) carry <strong>no security</strong>, and its signatures are <strong>not FIPS 204</strong> — no standard verifier accepts them. Combining standard parameters with non-reconstructing distributed signing is a limitation of this demo, not an unresolved property of all threshold ML-DSA research. Published constructions achieve both under their stated assumptions.</li>
           </ul>
         </div>
       </div>
@@ -170,8 +170,7 @@ app.innerHTML = `
         signature, but the <em>distributed-trust</em> property is illustrated rather than enforced.
         In the toy path the distributed-trust property is genuinely enforced and executed, but the
         parameters are too small to secure anything and the signature needs its own verifier.
-        Getting both at once is the open research problem this lab is about — see the landscape
-        table below.
+        This lab does not combine those properties; the published research landscape below includes schemes that do.
       </p>
 
       <div id="stop-ideal" class="contrast-experiment">
@@ -346,12 +345,18 @@ app.innerHTML = `
               <tr><td>TOPCOAT (2024)</td><td>2</td><td>sim. malicious</td><td>3</td><td>No <sup>&dagger;</sup></td></tr>
               <tr><td>Hermine (2026/419)</td><td>Any t-of-n, N ≤ 64</td><td>Identifiable aborts + proactive</td><td>2 (partially non-interactive)</td><td>No <sup>&Dagger;</sup></td></tr>
               <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based, passive</td><td>2</td><td>Yes</td></tr>
+              <tr><td><a href="https://www.usenix.org/conference/usenixsecurity26/presentation/celi">Mithril / Efficient Threshold ML-DSA (USENIX Security 2026)</a></td><td>Up to 6 evaluated</td><td>Dishonest majority (authors’ model)</td><td>Not summarized here</td><td>Yes — ML-DSA verifier</td></tr>
               <tr><td>Threshold Raccoon</td><td>t-of-n, N ≤ 1024</td><td>Standard lattice</td><td>3</td><td>No</td></tr>
             </tbody>
           </table>
         </div>
         <p class="small-note">
-          No threshold ML-DSA construction is NIST-standardized as of 2026. This lab models the signing-side protocol only.
+          Mithril was published at USENIX Security in August 2026 with a Go implementation; its
+          <a href="https://csrc.nist.gov/presentations/2026/mpts2026-3b7">28 January 2026 author presentation hosted by NIST</a>
+          describes DKG, a posteriori sharing preserving the public key, and dishonest-majority security.
+          These are attributed research claims and evaluated party bounds, not an audit of this browser composition.
+          <a href="https://csrc.nist.gov/pubs/ir/8214/c/final">NIST IR 8214C (20 January 2026)</a>
+          is a final call for submissions, not standardization of a threshold ML-DSA construction. This lab models the signing-side protocol only.
           Every figure above is taken from the cited paper. Where a paper does not state a number, the cell says so rather
           than estimating one.
         </p>
