@@ -360,6 +360,17 @@ app.innerHTML = `
           Every figure above is taken from the cited paper. Where a paper does not state a number, the cell says so rather
           than estimating one.
         </p>
+        <p class="small-note" id="fault-replay-research">
+          <strong>Fault-replay research — 21 October 2026:</strong>
+          <a href="https://eprint.iacr.org/2026/2566" target="_blank" rel="noreferrer">Meng, ePrint 2026/2566</a>
+          is a preprint reporting Mithril implementation experiments with forced cross-session sample replay
+          (for example, RNG state rollback) and coordinator-visible per-party responses. Under these conditions,
+          a participant's share can be recovered while individual signatures still verify; faulting enough
+          participants can expose the threshold key. Malicious-participant security does not by itself cover
+          this fault model. Results for other schemes use different evidence levels, not a blanket break of
+          threshold signatures. Neither this lab's reconstructed-key FIPS path nor its never-combine toy path
+          implements Mithril or reproduces this attack.
+        </p>
         <p class="small-note">
           <sup>&sect;</sup> Trilithium is two <em>signers</em> — a server and a phone — but its architecture also requires a
           Correlated Randomness Provider as a third entity. The paper's own concluding remarks call it "a three-party (Phone,

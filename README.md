@@ -177,6 +177,8 @@ vite
 
 *"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
 
-## Research boundary (checked 12 October 2026)
+## Research boundary (checked 22 October 2026)
 
 The demo’s FIPS 204 path reconstructs the full key; the never-combine path uses non-FIPS toy parameters. These are limits of this implementation. [Celi et al., Efficient Threshold ML-DSA](https://www.usenix.org/conference/usenixsecurity26/presentation/celi), USENIX Security, August 2026, implements standard-verifier-compatible distributed signing in Go for up to six parties. The [Mithril author presentation](https://csrc.nist.gov/presentations/2026/mpts2026-3b7), 28 January 2026, states dishonest-majority security, DKG, and sharing an existing key while preserving its public key. This research is not a NIST threshold standard or a validation of this demo. [NIST IR 8214C](https://csrc.nist.gov/pubs/ir/8214/c/final), final 20 January 2026, calls for submissions.
+
+**Fault replay is a separate threat model.** [Meng, ePrint 2026/2566](https://eprint.iacr.org/2026/2566) (preprint; received 20 October, published 21 October 2026) reports Mithril implementation experiments under forced cross-session sample replay, such as RNG state rollback, with coordinator-visible per-party responses. These conditions enable share recovery even while individual signatures verify; faulting enough participants can expose the threshold key. Malicious-participant security does not automatically cover this fault model. The paper's other scheme analyses have different evidence levels; this is not a blanket break of threshold signatures. Neither the reconstructed-key FIPS path nor the never-combine toy path implements Mithril or reproduces this attack. Exhibit 4 links the source beside the research comparison.
