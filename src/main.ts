@@ -501,7 +501,12 @@ function updatePhoneToggleButton(): void {
   phoneToggleButton.setAttribute('aria-pressed', String(!phoneEnabled));
   phoneToggleButton.setAttribute(
     'aria-label',
-    phoneEnabled ? 'Disable the phone party to test 2 of 2 enforcement' : 'Enable the phone party to restore 2 of 2 signing',
+    // Opens with the button's own words: axe 4.14 wants the accessible name to
+    // contain the visible text (label-content-name-mismatch, WCAG 2.5.3), and
+    // "Disable phone" is not a phrase in "Disable the phone party to ...".
+    phoneEnabled
+      ? 'Disable phone: the phone party, to test 2 of 2 enforcement'
+      : 'Enable phone: the phone party, to restore 2 of 2 signing',
   );
 }
 
