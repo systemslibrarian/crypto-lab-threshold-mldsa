@@ -344,7 +344,7 @@ app.innerHTML = `
               <tr><td>Quorus (2025/1163)</td><td>Any t-of-n (honest majority)</td><td>UC, malicious (abort)</td><td>16–29 online <sup>&para;</sup></td><td>Yes</td></tr>
               <tr><td>TOPCOAT (2024)</td><td>2</td><td>sim. malicious</td><td>3</td><td>No <sup>&dagger;</sup></td></tr>
               <tr><td>Hermine (2026/419)</td><td>Any t-of-n, N ≤ 64</td><td>Identifiable aborts + proactive</td><td>2 (partially non-interactive)</td><td>No <sup>&Dagger;</sup></td></tr>
-              <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based, passive</td><td>2</td><td>Yes</td></tr>
+              <tr><td>THED (2026/638)</td><td>Any t-of-n</td><td>FHE-based, passive</td><td>2</td><td>Claimed; reference Dilithium tested <sup><a href="#thed-compatibility" aria-label="THED compatibility evidence">*</a></sup></td></tr>
               <tr><td><a href="https://www.usenix.org/conference/usenixsecurity26/presentation/celi">Mithril / Efficient Threshold ML-DSA (USENIX Security 2026)</a></td><td>Up to 6 evaluated</td><td>Dishonest majority (authors’ model)</td><td>Not summarized here</td><td>Yes — ML-DSA verifier</td></tr>
               <tr><td>Threshold Raccoon</td><td>t-of-n, N ≤ 1024</td><td>Standard lattice</td><td>3</td><td>No</td></tr>
             </tbody>
@@ -359,6 +359,15 @@ app.innerHTML = `
           is a final call for submissions, not standardization of a threshold ML-DSA construction. This lab models the signing-side protocol only.
           Every figure above is taken from the cited paper. Where a paper does not state a number, the cell says so rather
           than estimating one.
+        </p>
+        <p class="small-note" id="thed-compatibility">
+          <sup>*</sup> <a href="https://eprint.iacr.org/2026/638" target="_blank" rel="noreferrer">THED's authors</a>
+          claim verification interchangeability with Dilithium/ML-DSA. Their NIST level-2 proof of concept
+          reports that produced signatures pass reference Dilithium verification (§5.3, p.12).
+          The recalled base specification cites Dilithium v3.1 (Appendix A.5, p.16), but the experimental
+          passage does not pin the tested verifier revision. Final FIPS 204 interoperability across ML-DSA
+          parameter sets and message/context handling is not established by those tests. This is an evidence
+          limit, not a finding of incompatibility; this lab does not implement THED.
         </p>
         <p class="small-note" id="fault-replay-research">
           <strong>Fault-replay research — 21 October 2026:</strong>
@@ -416,7 +425,7 @@ app.innerHTML = `
             <dt>Proactive security / refresh</dt>
             <dd>Key shares are periodically re-randomised, so an attacker must break into enough parties within a single epoch rather than accumulating shares over time.</dd>
             <dt>Std compat (standard-compatible)</dt>
-            <dd>"Yes" means the output is a normal FIPS 204 signature the unmodified verifier accepts — no special verifier needed. "No" means the scheme either targets a different base signature or changes the verification algorithm, so relying parties would need new verifier code.</dd>
+            <dd>"Yes" means the output is a normal FIPS 204 signature the unmodified verifier accepts — no special verifier needed. "Claimed; reference Dilithium tested" distinguishes the authors’ compatibility claim from the narrower reported tests; see the THED note. "No" means the scheme either targets a different base signature or changes the verification algorithm, so relying parties would need new verifier code.</dd>
           </dl>
         </details>
       </article>
