@@ -22,7 +22,7 @@ for (const width of [1280, 380]) {
     await page.goto('.');
     const row = page.getByRole('row').filter({ hasText: 'THED (2026/638)' });
     await expect(row.getByRole('cell').last()).toContainText('Claimed; reference Dilithium tested');
-    await row.getByRole('link', { name: 'THED compatibility evidence' }).click();
+    await row.getByRole('link', { name: 'evidence', exact: true }).click();
     const note = page.locator('#thed-compatibility');
     await expect(note).toBeVisible();
     await expect(note.locator('a')).toHaveAttribute('href', 'https://eprint.iacr.org/2026/638');
