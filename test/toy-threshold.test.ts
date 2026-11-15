@@ -3,15 +3,20 @@
  *
  * These run the protocol rather than inspecting it. Margin: a 300-cycle sweep
  * (each cycle = one DKG plus an honest sign, an over-bound tamper, a one-unit
- * tamper and a single-party forgery attempt) was clean, with a mean of 2.52
- * signing attempts and a worst case of 12 against a 60-attempt budget. The
- * suite below re-runs a smaller version of that sweep on every test run.
+ * tamper and a single-party forgery attempt) was clean, with a worst case of 12
+ * against a 60-attempt budget. A 20,000-signature re-measurement on 15 November
+ * 2026 put the mean at 2.72 attempts (worst case 21, none exhausting the
+ * budget); the 2.52 previously recorded here was a small-sample artefact of that
+ * 300-cycle run, and 2.72 is what the parameters predict — see the mean-attempt
+ * test below. The suite re-runs a smaller version of the sweep on every run.
  */
 import { describe, expect, it } from 'vitest';
 
 import { encodeText } from '../src/mldsa-primitives';
 import {
+  TOY_BETA,
   TOY_ETA,
+  TOY_GAMMA1,
   TOY_K,
   TOY_L,
   TOY_MAX_ATTEMPTS,
@@ -37,6 +42,33 @@ import {
 } from '../src/toy-threshold';
 
 const message = encodeText('Transfer $1000 to Alice');
+
+describe('the rejection bound is the one FIPS 204 states', () => {
+  it('is γ₁ − β, with β = τ·η — not β', () => {
+    // FIPS 204 Algorithm 7, line 23: reject while ‖z‖∞ ≥ γ₁ − β, with β = τ·η
+    // from Table 1. The page used to print the check as "‖z‖∞ < β", which is a
+    // much tighter bound than the standard's and is not what this code does.
+    expect(TOY_BETA).toBe(TOY_TAU * TOY_ETA);
+    expect(TOY_PER_PARTY_BOUND).toBe(TOY_GAMMA1 - TOY_BETA);
+    expect(TOY_PER_PARTY_BOUND).toBeGreaterThan(TOY_BETA);
+    // The verifier's bound is the two parties' bounds added, not β either.
+    expect(TOY_Z_BOUND).toBe(2 * (TOY_GAMMA1 - TOY_BETA));
+  });
+
+  it('accepts a response that β alone would have rejected', () => {
+    // A z-share whose norm sits between β and γ₁ − β is valid under the
+    // standard's check and would have been thrown away under the printed one.
+    const setup = toyDkg();
+    let sawOne = false;
+    for (let trial = 0; trial < 40 && !sawOne; trial += 1) {
+      const outcome = toyThresholdSign(encodeText(`bound-${trial}`), setup);
+      for (const attempt of outcome.attempts) {
+        if (attempt.serverAccepted && attempt.serverNorm > TOY_BETA) sawOne = true;
+      }
+    }
+    expect(sawOne).toBe(true);
+  });
+});
 
 describe('ring arithmetic', () => {
   it('multiplies negacyclically: X^(n-1) · X = −1', () => {
@@ -193,6 +225,39 @@ describe('the honest two-party signing path', () => {
     expect(sawARestart).toBe(true);
     expect(totalAttempts).toBeGreaterThan(25);
   });
+
+  it('aborts at the rate the parameters predict: a mean of 2.72 attempts', () => {
+    // The README and the two margin notes in this suite quote this figure, so
+    // it is pinned here rather than left to a reader's memory of one sample.
+    //
+    // y is uniform over 2·γ₁ − 1 values per coefficient and c·s shifts it by a
+    // fixed amount, so a party accepts a coefficient with probability
+    // (2(γ₁ − β) − 1)/(2γ₁ − 1) exactly, independently across n·l coefficients;
+    // both parties must accept, and attempts are geometric in that.
+    const perCoefficient = (2 * TOY_PER_PARTY_BOUND - 1) / (2 * TOY_GAMMA1 - 1);
+    const bothAccept = perCoefficient ** (2 * TOY_N * TOY_L);
+    expect(bothAccept).toBeCloseTo(0.3671, 4);
+    // 2.72, the figure the documentation states. 2.52 came from a 300-cycle
+    // sample and is outside this band.
+    expect(1 / bothAccept).toBeCloseTo(2.72, 2);
+
+    // ...and the harness really does behave that way. 240 runs put the standard
+    // error near 0.14, so a ±0.75 band is ~5 SE: wide enough never to flake,
+    // narrow enough to catch a protocol change that moved the abort rate.
+    const RUNS = 240;
+    let attempts = 0;
+    let worst = 0;
+    for (let trial = 0; trial < RUNS; trial += 1) {
+      const outcome = toyThresholdSign(encodeText(`rate-${trial}`), toyDkg());
+      expect(outcome.status).toBe('signed');
+      attempts += outcome.attempts.length;
+      worst = Math.max(worst, outcome.attempts.length);
+    }
+    expect(attempts / RUNS).toBeGreaterThan(1 / bothAccept - 0.75);
+    expect(attempts / RUNS).toBeLessThan(1 / bothAccept + 0.75);
+    expect(worst).toBeLessThan(TOY_MAX_ATTEMPTS);
+    // 240 signatures at these dimensions run past the 5 s default.
+  }, 60_000);
 
   it('binds the signature to the message it was made for', () => {
     const setup = toyDkg();

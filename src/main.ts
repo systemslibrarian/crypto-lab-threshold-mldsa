@@ -283,12 +283,12 @@ app.innerHTML = `
             <dd>A small pseudo-random polynomial derived by hashing w₁ and the message. <em>Why:</em> it replaces an interactive verifier with a hash, turning identification into a signature.</dd>
             <dt>Response z = y + c·s₁</dt>
             <dd>Each party's masked reply. The nonce hides the secret term c·s₁. <em>Why:</em> z is what the verifier checks, without ever seeing s₁.</dd>
-            <dt>Infinity-norm bound (|z|∞ &lt; β)</dt>
-            <dd>The largest coefficient of z must stay small. <em>Why:</em> if z is too big it leaks information about s₁, so the round is rejected.</dd>
+            <dt>Infinity-norm bound (‖z‖∞ &lt; γ₁ − β)</dt>
+            <dd>The largest coefficient of z must stay small. β = τ·η is the bound on c·s₁, and FIPS 204 Algorithm 7 (line 23) rejects unless ‖z‖∞ &lt; γ₁ − β — β is the margin subtracted from the nonce bound, not the bound itself. <em>Why:</em> if z is too big it leaks information about s₁, so the round is rejected.</dd>
             <dt>Rejection / abort</dt>
             <dd>When the norm check fails, the whole round is thrown away and restarted with fresh randomness. <em>Why:</em> this "Fiat–Shamir with aborts" is the core reason threshold ML-DSA is harder than Schnorr — every abort is a coordinated restart.</dd>
             <dt>Secure comparison</dt>
-            <dd>An MPC protocol that checks |z|∞ &lt; β <em>without</em> revealing z. <em>Why:</em> the parties must decide accept/reject before publishing z, but must not leak it if rejected.</dd>
+            <dd>An MPC protocol that checks ‖z‖∞ &lt; γ₁ − β <em>without</em> revealing z. <em>Why:</em> the parties must decide accept/reject before publishing z, but must not leak it if rejected.</dd>
           </dl>
         </details>
       </article>
@@ -896,7 +896,7 @@ const TRACE_STEPS: TraceStepDef[] = [
     next: 'Start a fresh round',
     narration: (r) => {
       const ok = r.accepted;
-      return `<p>A <strong>secure comparison</strong> checks the largest coefficient of z stays under the bound <code>β = ${TRACE_Z_BOUND}</code> — without revealing z if it fails.</p>
+      return `<p>A <strong>secure comparison</strong> checks the largest coefficient of z stays under this trace's bound <code>B = ${TRACE_Z_BOUND}</code> — without revealing z if it fails. In ML-DSA that bound is <code>γ₁ − β</code> with <code>β = τ·η</code> (FIPS 204 Algorithm 7, line 23); B is its legible stand-in at these toy numbers.</p>
       <p class="small-note">${ok
         ? 'This round was accepted. In a real scheme z would now be published and the signature verifies with the standard verifier.'
         : 'This round was rejected. Press “Fresh randomness (restart)” to see the coordinated do-over that makes threshold ML-DSA expensive.'}</p>`;
@@ -906,7 +906,7 @@ const TRACE_STEPS: TraceStepDef[] = [
       {
         lane: 'channel',
         tone: r.accepted ? 'accept' : 'reject',
-        tag: `|z|∞ = ${r.zNorm} ${r.accepted ? '<' : '≥'} β = ${TRACE_Z_BOUND}`,
+        tag: `‖z‖∞ = ${r.zNorm} ${r.accepted ? '<' : '≥'} B = ${TRACE_Z_BOUND}`,
         value: r.accepted ? '✓ ACCEPT — publish z' : '✕ REJECT — both restart',
       },
     ],
@@ -1437,7 +1437,7 @@ function runAbortsDemo(): void {
         <div class="abort-row ${accepted ? 'abort-accept' : 'abort-reject'}">
           <span class="abort-icon" aria-hidden="true">${accepted ? '✓' : '↻'}</span>
           <span class="abort-label">Attempt ${i + 1}</span>
-          <code>|z|∞ = ${a.zNorm} ${accepted ? '&lt;' : '≥'} β=${TRACE_Z_BOUND}</code>
+          <code>‖z‖∞ = ${a.zNorm} ${accepted ? '&lt;' : '≥'} B=${TRACE_Z_BOUND}</code>
           <span class="abort-state">${accepted ? 'ACCEPT' : 'REJECT — both parties discard & restart'}</span>
         </div>`;
     })

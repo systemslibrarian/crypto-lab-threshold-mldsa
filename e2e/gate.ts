@@ -389,7 +389,7 @@ export async function scan(page: Page, label: string): Promise<void> {
  * Advance the round trace to its final step and report which way it landed.
  *
  * `computeRound` draws fresh randomness every time, so step 6 lands on an
- * ACCEPT chip or a REJECT chip depending on whether `|z|∞` cleared the bound —
+ * ACCEPT chip or a REJECT chip depending on whether `‖z‖∞` cleared the bound —
  * roughly a 35/65 split at these toy parameters. Those are two different
  * palettes (`--success`-tinted versus `--danger`-tinted) on two different
  * strings, so a gate that only ever saw one of them would be scanning half the

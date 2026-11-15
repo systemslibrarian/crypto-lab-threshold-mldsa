@@ -9,9 +9,11 @@ import { expect, test } from '@playwright/test';
  *
  * Margin: a 300-cycle sweep in Node (each cycle = one DKG, an honest sign, an
  * over-bound tamper, a one-unit tamper and a single-party attempt) was clean,
- * with a mean of 2.52 signing attempts and a worst case of 12 against the
- * 60-attempt budget. The chance of the honest path failing to converge is
- * therefore around 6e-12 per run.
+ * with a worst case of 12 against the 60-attempt budget. A 20,000-signature
+ * re-measurement on 15 November 2026 put the mean at 2.72 attempts and the worst
+ * case at 21, none exhausting the budget (the 2.52 recorded before came from the
+ * 300-cycle sample). The chance of the honest path failing to converge is still
+ * around 6e-12 per run.
  */
 
 const PER_PARTY_BOUND = 4080;
