@@ -133,3 +133,39 @@ test('recovering from a failed run restores a real accepted signature', async ({
     { timeout: 30_000 },
   );
 });
+
+test('both signing panels preserve the message bytes and retire edited results', async ({ page }) => {
+  await openIdeal(page);
+  // Record only the lesson's candidate messages at its public UTF-8 boundary.
+  const seen: string[] = [];
+  await page.exposeFunction('recordMessage', (s: string) => { seen.push(s); });
+  await page.evaluate(() => {
+    const encode = TextEncoder.prototype.encode;
+    TextEncoder.prototype.encode = function (value?: string) {
+      if (value === '' || value === '  Library lesson  ' || value === 'Library lesson' || value === 'Transfer $1000 to Alice') {
+        void (window as Window & { recordMessage: (s: string) => Promise<void> }).recordMessage(value);
+      }
+      return encode.call(this, value);
+    };
+  });
+  const message = page.locator('#message-input');
+  for (const value of ['', '  Library lesson  ']) {
+    await message.fill(value);
+    seen.length = 0;
+    await page.locator('#sign-button').click();
+    await expect(page.locator('#verdict-sig')).toContainText('standard FIPS 204 verifier accepts');
+    await expect.poll(() => seen.includes(value)).toBe(true);
+    expect(seen).not.toContain('Transfer $1000 to Alice');
+    expect(seen).not.toContain('Library lesson');
+  }
+  await message.fill('');
+  await expect(page.locator('#verdict-sig')).toContainText('awaiting run');
+  await expect(page.locator('#sign-stats')).toBeEmpty();
+  seen.length = 0;
+  await page.locator('#ideal-play').click();
+  await expect(page.locator('[data-ideal-verdict="accepted"]')).toBeVisible();
+  await expect.poll(() => seen.includes('')).toBe(true);
+  await message.fill('Edited');
+  await expect(page.locator('#ideal-verdict')).toContainText('no verdict is claimed');
+  await expect(page.locator('[data-ideal-verdict="accepted"]')).toHaveCount(0);
+});

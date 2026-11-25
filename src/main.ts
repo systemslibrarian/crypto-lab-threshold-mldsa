@@ -659,7 +659,7 @@ async function runSigningDemo(): Promise<void> {
   setBusyState(true);
   try {
     const currentKeypair = await ensureKeypair();
-    const message = encodeText(messageInput.value.trim() || 'Transfer $1000 to Alice');
+    const message = encodeText(messageInput.value);
 
     if (!phoneEnabled) {
       const blocked = await singlePartyAttemptFails(message, currentKeypair, 'server');
@@ -774,7 +774,15 @@ async function runBenchmarkDemo(): Promise<void> {
   }
 }
 
+function clearSigningResults(): void {
+  resetVerdicts();
+  jointArtifactText.textContent = 'Awaiting a new signing run.';
+  protocolLog.replaceChildren();
+  signStats.replaceChildren();
+}
+
 function togglePhoneState(): void {
+  clearSigningResults();
   phoneEnabled = !phoneEnabled;
   phoneIndicator.className = `dot ${phoneEnabled ? 'phone-dot' : 'off-dot'}`;
   updatePhoneToggleButton();
@@ -1120,6 +1128,7 @@ function renderContrast(): void {
 // ---------------------------------------------------------------------------
 
 let idealPlaying = false;
+let idealRevision = 0;
 /** The toy setup is created once and reused, so the same public key persists. */
 let toySetup: ToySetup | null = null;
 /** The most recent executed outcome — every rendered value is read from it. */
@@ -1382,6 +1391,7 @@ function renderIdealVerdict(outcome: ToySignOutcome): void {
 
 async function playIdeal(tamper: ToyTamper = 'none'): Promise<void> {
   if (idealPlaying) return;
+  const revision = ++idealRevision;
   const buttons = ['#ideal-play', '#ideal-tamper-norm', '#ideal-tamper-nudge']
     .map((id) => document.querySelector<HTMLButtonElement>(id))
     .filter((b): b is HTMLButtonElement => b !== null);
@@ -1390,7 +1400,7 @@ async function playIdeal(tamper: ToyTamper = 'none'): Promise<void> {
 
   try {
     if (!toySetup) toySetup = toyDkg();
-    const message = encodeText(messageInput.value.trim() || 'Transfer $1000 to Alice');
+    const message = encodeText(messageInput.value);
     // The protocol runs for real, right here, before anything is rendered.
     toyOutcome = toyThresholdSign(message, toySetup, tamper);
 
@@ -1399,16 +1409,19 @@ async function playIdeal(tamper: ToyTamper = 'none'): Promise<void> {
     renderIdealAttempts(toyOutcome);
     const delay = prefersReducedMotion() ? 250 : 1000;
     for (let i = 0; i < steps.length; i += 1) {
+      if (revision !== idealRevision) return;
       renderIdealStep(steps, i);
       if (i < steps.length - 1) {
         await new Promise((resolve) => window.setTimeout(resolve, delay));
       }
     }
   } finally {
-    idealPlaying = false;
-    for (const button of buttons) button.disabled = false;
-    const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
-    if (playButton) playButton.textContent = '↻ Run it again (fresh randomness)';
+    if (revision === idealRevision) {
+      idealPlaying = false;
+      for (const button of buttons) button.disabled = false;
+      const playButton = document.querySelector<HTMLButtonElement>('#ideal-play');
+      if (playButton) playButton.textContent = '↻ Run it again (fresh randomness)';
+    }
   }
 }
 
@@ -1502,11 +1515,14 @@ traceResetButton.addEventListener('click', () => {
 
 contrastEscrowButton.addEventListener('click', () => {
   contrastMode = 'escrow';
+  idealRevision++;
+  idealPlaying = false;
   renderContrast();
 });
 
 contrastIdealButton.addEventListener('click', () => {
   contrastMode = 'ideal';
+  idealRevision++;
   idealPlaying = false;
   renderContrast();
 });
@@ -1524,6 +1540,15 @@ shareRerollButton.addEventListener('click', () => {
   shareByteIndex += 1;
   shareCombined = false;
   renderShareDemo();
+});
+
+messageInput.addEventListener('input', () => {
+  clearSigningResults();
+  setStatus('idle', 'Message changed. Run signing to verify the new message.');
+  idealRevision++;
+  idealPlaying = false;
+  toyOutcome = null;
+  if (contrastMode === 'ideal') renderContrast();
 });
 
 signButton.addEventListener('click', () => {
